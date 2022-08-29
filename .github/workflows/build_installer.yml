@@ -42,8 +42,10 @@ jobs:
           mv "ArtemisFirmwareUploader.app" "build/"
           ls *
           create-dmg "ArtemisFirmwareUploader.dmg" "build/"
+          ls *
           
       - name: Upload Build Artifact
+        run: ls tools/*
         uses: actions/upload-artifact@v3
         with:
           name: ArtemisFirwareUploader.dmg
