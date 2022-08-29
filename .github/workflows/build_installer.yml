@@ -28,12 +28,17 @@ jobs:
       - name: System Setup
         run: |
           pip3 install pyserial pycryptodome pyinstaller Pillow
+          brew install create-dmg
 
       # Build the installer
       - name: Build Mac Installer
         run: |
           cd tools
           pyinstaller --windowed -n ArtemisFirmwareUploader --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." artemis_firmware_uploader_gui.py
+          create-dmg ArtemisFirmwareUploader.dmg ArtemisFirwareUploader.app
           
       - name: Upload Build Artifact
-        run: ls *
+        uses: actions/upload-artifact@v3
+        with:
+          name: ArtemisFirwareUploader.dmg
+          path: tools/
