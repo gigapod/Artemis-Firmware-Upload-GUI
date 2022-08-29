@@ -37,7 +37,10 @@ jobs:
         run: |
           cd tools
           mkdir build
-          pyinstaller --windowed -n ArtemisFirmwareUploader --specpath ./build --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." artemis_firmware_uploader_gui.py
+          pyinstaller --windowed -n ArtemisFirmwareUploader  --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." artemis_firmware_uploader_gui.py
+          ls *
+          mv "ArtemisFirmwareUploader.app" "build/"
+          ls *
           create-dmg "ArtemisFirmwareUploader.dmg" "build/"
           
       - name: Upload Build Artifact
