@@ -44,9 +44,7 @@ jobs:
           create-dmg "ArtemisFirmwareUploader.dmg" "build/"
           ls *
           
-      - name: Upload Build Artifact
-        run: ls tools/*
-        uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v3
         with:
-          name: ArtemisFirwareUploader.dmg
-          path: tools/ArtemisFirwareUploader.dmg
+          name: Upload macOS build dmg
+          path: tools/ArtemisFirmwareUploader.dmp
