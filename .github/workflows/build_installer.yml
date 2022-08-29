@@ -36,15 +36,14 @@ jobs:
       - name: Build Mac Installer
         run: |
           cd tools
-          mkdir build
           pyinstaller --windowed -n ArtemisFirmwareUploader  --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." artemis_firmware_uploader_gui.py
-          ls *
+          mkdir build
           mv "ArtemisFirmwareUploader.app" "build/"
-          ls *
+          ls build/
           create-dmg "ArtemisFirmwareUploader.dmg" "build/"
           ls *
           
       - uses: actions/upload-artifact@v3
         with:
           name: Upload macOS build dmg
-          path: tools/ArtemisFirmwareUploader.dmp
+          path: tools/ArtemisFirmwareUploader.dmg
