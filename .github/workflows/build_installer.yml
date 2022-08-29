@@ -23,6 +23,8 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
 
       # Setup python
       - name: System Setup
@@ -34,10 +36,9 @@ jobs:
       - name: Build Mac Installer
         run: |
           cd tools
-          pyinstaller --windowed -n ArtemisFirmwareUploader --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." artemis_firmware_uploader_gui.py
-          mkdir ArtemisUploader
-          mv ./ArtemisFirwareUploader.app ArtemisUploader/
-          create-dmg "ArtemisFirmwareUploader.dmg" "ArtemisUploader/"
+          mkdir build
+          pyinstaller --windowed -n ArtemisFirmwareUploader --specpath ./build --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." artemis_firmware_uploader_gui.py
+          create-dmg "ArtemisFirmwareUploader.dmg" "build/"
           
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v3
