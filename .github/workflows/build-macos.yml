@@ -51,6 +51,6 @@ jobs:
           path: tools/ArtemisFirmwareUploader.dmg
 
       - id: output-installer
-        run: echo "::set-output name=filename=ArtemisFirmwareUploader.dmg"
+        run: echo "::set-output name=filename::ArtemisFirmwareUploader.dmg"
         
         
