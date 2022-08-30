@@ -47,7 +47,7 @@ jobs:
           
       - uses: actions/upload-artifact@v3
         with:
-          name: Upload macOS build dmg
+          name: ArtemisFirmwareUploader.dmg
           path: tools/ArtemisFirmwareUploader.dmg
 
       - id: output-installer
