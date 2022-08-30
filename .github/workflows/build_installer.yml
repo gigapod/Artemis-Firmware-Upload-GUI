@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: call-macos-build
     steps:
-      - run echo ${{ needs.call-macos-build.outputs.macos-build-file }}
+      - run: echo ${{ needs.call-macos-build.outputs.macos-build-file }}
       
   # Build the installer on Linux
   linux-build:
