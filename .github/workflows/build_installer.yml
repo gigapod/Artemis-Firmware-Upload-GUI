@@ -29,7 +29,7 @@ jobs:
       # Setup python
       - name: System Setup
         run: |
-          pip3 install pyserial pycryptodome pyinstaller Pillow
+          pip3 install pyserial pycryptodome pyinstaller Pillow pyqt5
           brew install create-dmg
 
       # Build the installer
