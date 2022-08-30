@@ -39,15 +39,16 @@ jobs:
       - name: Build Linux Installer
         run: |
           cd tools
-          pyinstaller --onefile --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." artemis_firmware_uploader_gui.py
-          gzip artemis_firmware_uploader_gui
+          pyinstaller --onefile --name ArtemisUploader --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." artemis_firmware_uploader_gui.py
+          gzip ArtemisUploader
+          mv ArtemisUploader.gz ArtemisUploader.linux.gz
           
       - uses: actions/upload-artifact@v3
         with:
-          name: artemis_firmware_uploader_gui.gz
-          path: tools/artemis_firmware_uploader_gui.gz
+          name: ArtemisUploader.linux.gz
+          path: tools/ArtemisUploader.linux.gz
 
       - id: output-installer
-        run: echo "::set-output name=filename::artemis_firmware_uploader_gui.gz"
+        run: echo "::set-output name=filename::ArtemisUploader.linux.gz"
         
         
