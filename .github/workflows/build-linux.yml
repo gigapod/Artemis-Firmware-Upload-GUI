@@ -7,7 +7,7 @@ on:
   # this is a called workflow
   workflow_call:
     outputs:
-      macos-build-file:
+      build-file:
         description: "The output of this build procsss"
         value: ${{ jobs.linux-build-job.outputs.install-file }}
 
