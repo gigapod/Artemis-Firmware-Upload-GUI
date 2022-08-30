@@ -51,10 +51,9 @@ jobs:
         run: |
           cd tools
           New-Item -Path "." -Name "ArtemisUploader" -ItemType "directory"
-          Get-ChildItem -Path "."
           Move-Item -Path ".\artemis_firmware_uploader_gui.exe" .\ArtemisUploader
-          Get-ChildItem -Path "."
-          Compress-7Zip -Path "." "ArtemisUploaderWindows" -ArchiveFileName "ArtemisUploaderWindows.zip" -Format Zip
+          Get-ChildItem -Path ".\ArtemisUploader"
+          Compress-7Zip -Path "." "ArtemisUploader" -ArchiveFileName "ArtemisUploaderWindows.zip" -Format Zip
         
       - uses: actions/upload-artifact@v3
         with:
