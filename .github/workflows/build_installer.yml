@@ -5,8 +5,8 @@ name: installer-build
 # Controls when the workflow will run
 on:
   # Triggers the workflow on push or pull request events but only for the "master" branch
-  push:
-    branches: [ "master" ]
+  # push:
+    #branches: [ "master" ]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -14,37 +14,8 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # Build the installer on mac
-  macos-build:
-    # The type of runner that the job will run on
-    runs-on: macos-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      # Setup python
-      - name: System Setup
-        run: |
-          pip3 install pyserial pycryptodome pyinstaller Pillow pyqt5
-          brew install create-dmg
-
-      # Build the installer
-      - name: Build Mac Installer
-        run: |
-          cd tools
-          pyinstaller --windowed -n ArtemisFirmwareUploader --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." artemis_firmware_uploader_gui.py
-          mkdir tmp
-          mv "ArtemisFirmwareUploader.app" "tmp/"
-          create-dmg --volicon "resource/sparkdisk.icns" --background "resource/sfe_logo_med.png" --icon "ArtemisFirmwareUploader.app" 100 100 --window-size 600 440 --app-drop-link 400 100 "ArtemisFirmwareUploader.dmg" "tmp/"
-          
-      - uses: actions/upload-artifact@v3
-        with:
-          name: Upload macOS build dmg
-          path: tools/ArtemisFirmwareUploader.dmg
+  call-macos-build:
+    uses: ./.github/workflows/build-macos.yml
           
   # Build the installer on Linux
   linux-build:
