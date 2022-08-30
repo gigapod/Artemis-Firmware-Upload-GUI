@@ -34,11 +34,6 @@ jobs:
       - name: System Setup
         run: |
           pip3 install pyserial pycryptodome pyinstaller pyqt5
-
-      # Windows Setup
-      - name: Windows Setup
-        shell: powershell
-        run: Install-Module 7Zip4PowerShell -Force -Verbose
         
       # Build the installer
       - name: Build Windows Installer
@@ -50,10 +45,12 @@ jobs:
         shell: powershell
         run: |
           cd tools
-          New-Item -Path "." -Name "ArtemisUploader" -ItemType "directory"
-          Move-Item -Path ".\artemis_firmware_uploader_gui.exe" .\ArtemisUploader
-          Get-ChildItem -Path ".\ArtemisUploader"
-          Compress-7Zip -Path ".\ArtemisUploader" -ArchiveFileName "ArtemisUploaderWindows.zip" -Format Zip
+          $compress = @{
+            Path = ".\artemis_firmware_uploader_gui.exe"
+            CompressionLevel = "Fastest"
+            DestinationPath = ".\ArtemisUploaderWindows.zip"
+            }
+          Compress-Archive @compress
         
       - uses: actions/upload-artifact@v3
         with:
