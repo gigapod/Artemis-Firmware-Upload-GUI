@@ -23,6 +23,11 @@ jobs:
     needs: call-macos-build
     steps:
       - run: echo ${{ needs.call-macos-build.outputs.macos-build-file }}
+      - uses: actions/download-artifact@v3
+        with:
+          name: ${{ needs.call-macos-build.outputs.macos-build-file }}
+      - name: Output Listing
+        run: ls -la
       
   # Build the installer on Linux
   linux-build:
