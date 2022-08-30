@@ -28,6 +28,10 @@ To use the compiled binaries for the supported platforms, use the binaries that 
 * Run the application: $ ./ArtemisUploader.
 
 
+### TODO
+* RPi
+* Python Package
+
 ## Using the Artemis Uploader
   
   
