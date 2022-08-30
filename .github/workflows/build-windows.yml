@@ -45,14 +45,16 @@ jobs:
         run: |
           cd tools
           pyinstaller --onefile --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin;." --add-data="Artemis-Logo-Rounded.png;." artemis_firmware_uploader_gui.py
-          mkdir ArtemisUploaderWindows
-          move artemis_firmware_uploader_gui.exe ArtemisUploaderWindows/
                     
       - name: Compress Installer
         shell: powershell
         run: |
           cd tools
-          Compress-7Zip -Path . "ArtemisUploaderWindows" -ArchiveFileName "ArtemisUploaderWindows.zip" -Format Zip
+          New-Item -Path "." -Name "ArtemisUploader" -ItemType "directory"
+          Get-ChildItem -Path "."
+          Move-Item -Path ".\artemis_firmware_uploader_gui.exe" .\ArtemisUploader
+          Get-ChildItem -Path "."
+          Compress-7Zip -Path "." "ArtemisUploaderWindows" -ArchiveFileName "ArtemisUploaderWindows.zip" -Format Zip
         
       - uses: actions/upload-artifact@v3
         with:
