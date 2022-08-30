@@ -63,7 +63,6 @@ jobs:
       - name: System Setup
         run: |
           pip3 install pyserial pycryptodome pyinstaller pyqt5
-          brew install create-dmg
 
       # Build the installer
       - name: Build Linux Installer
