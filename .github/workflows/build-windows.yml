@@ -39,26 +39,26 @@ jobs:
       - name: Build Windows Installer
         run: |
           cd tools
-          pyinstaller --onefile --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin;." --add-data="Artemis-Logo-Rounded.png;." artemis_firmware_uploader_gui.py
+          pyinstaller --onefile --name ArtemisUploader --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin;." --add-data="Artemis-Logo-Rounded.png;." artemis_firmware_uploader_gui.py
                     
       - name: Compress Installer
         shell: powershell
         run: |
           cd tools
           $compress = @{
-            Path = ".\artemis_firmware_uploader_gui.exe"
+            Path = ".\ArtemisUploader.exe"
             CompressionLevel = "Fastest"
-            DestinationPath = ".\ArtemisUploaderWindows.zip"
+            DestinationPath = ".\ArtemisUploader.win.zip"
             }
           Compress-Archive @compress
         
       - uses: actions/upload-artifact@v3
         with:
-          name: ArtemisUploaderWindows.zip
-          path: tools/ArtemisUploaderWindows.zip
+          name: ArtemisUploader.win.zip
+          path: tools/ArtemisUploader.win.zip
           
       - id: output-installer
-        run: echo "::set-output name=filename::ArtemisUploaderWindows.zip"
+        run: echo "::set-output name=filename::ArtemisUploader.win.zip"
     
         
         
