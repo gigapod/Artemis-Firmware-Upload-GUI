@@ -68,7 +68,7 @@ jobs:
       - name: Build Linux Installer
         run: |
           cd tools
-          pyinstaller -n artemis_firmware_uploader_gui  --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." artemis_firmware_uploader_gui.py
+          pyinstaller --onefile --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." artemis_firmware_uploader_gui.py
           
       - uses: actions/upload-artifact@v3
         with:
