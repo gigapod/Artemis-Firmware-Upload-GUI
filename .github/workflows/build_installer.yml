@@ -20,47 +20,26 @@ jobs:
   call-linux-build:
     uses: ./.github/workflows/build-linux.yml
     
+  call-windows-build:
+    uses: ./.github/workflows/build-windows.yml
+    
   # Using the outputs of the build
   deploy-builds: 
     runs-on: ubuntu-latest
-    needs: [call-macos-build, call-linux-build]
+    needs: [call-macos-build, call-linux-build, call-windows-build]
     steps:
       - run: echo ${{ needs.call-macos-build.outputs.build-file }}
       - run: echo ${{ needs.call-linux-build.outputs.build-file }}
+      - run: echo ${{ needs.call-windows-build.outputs.build-file }}
       - uses: actions/download-artifact@v3
         with:
           name: ${{ needs.call-macos-build.outputs.build-file }}
       - uses: actions/download-artifact@v3
         with:
           name: ${{ needs.call-linux-build.outputs.build-file }}
+      - uses: actions/download-artifact@v3
+        with:
+          name: ${{ needs.call-windows-build.outputs.build-file }}
       - name: Output Listing
         run: ls -la
 
-  # Build the installer on Linux
-  windows-build:
-    # The type of runner that the job will run on
-    runs-on: windows-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
-    steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      # Setup python
-      - name: System Setup
-        run: |
-          pip3 install pyserial pycryptodome pyinstaller pyqt5
-
-      # Build the installer
-      - name: Build Linux Installer
-        run: |
-          cd tools
-          pyinstaller --onefile --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin;." --add-data="Artemis-Logo-Rounded.png;." artemis_firmware_uploader_gui.py
-          
-      - uses: actions/upload-artifact@v3
-        with:
-          name: Upload Windows application
-          path: tools/artemis_firmware_uploader_gui.exe
