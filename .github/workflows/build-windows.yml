@@ -1,0 +1,63 @@
+# This is a basic workflow to help you get started with Actions
+
+name: build-windows
+
+# Controls when the workflow will run
+on:
+  # this is a called workflow
+  workflow_call:
+    outputs:
+      build-file:
+        description: "The output of this build procsss"
+        value: ${{ jobs.windows-build-job.outputs.install-file }}
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # Build the installer on mac
+  windows-build-job:
+    # The type of runner that the job will run on
+    runs-on: windows-latest
+    
+    # Output
+    outputs:
+      install-file: ${{ steps.output-installer.outputs.filename }}
+      
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # Setup python
+      - name: System Setup
+        run: |
+          pip3 install pyserial pycryptodome pyinstaller pyqt5
+
+      # Windows Setup
+      - name: Windows Setup
+        shell: powershell
+        run: Install-Module 7Zip4PowerShell -Force -Verbose
+        
+      # Build the installer
+      - name: Build Windows Installer
+        run: |
+          cd tools
+          pyinstaller --onefile --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin;." --add-data="Artemis-Logo-Rounded.png;." artemis_firmware_uploader_gui.py
+          mkdir ArtemisUploaderWindows
+          move artemis_firmware_uploader_gui.exe ArtemisUploaderWindows/
+                    
+      - name: Compress Installer
+        shell: powershell
+        run: |
+          cd tools
+          Compress-7Zip -Path . "ArtemisUploaderWindows" -ArchiveFileName "ArtemisUploaderWindows.zip" -Format Zip
+        
+      - uses: actions/upload-artifact@v3
+        with:
+          name: ArtemisUploaderWindows.zip
+          path: tools/ArtemisUploaderWindows.zip
+    
+        
+        
