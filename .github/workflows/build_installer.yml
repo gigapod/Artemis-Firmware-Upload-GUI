@@ -39,7 +39,7 @@ jobs:
           pyinstaller --windowed -n ArtemisFirmwareUploader --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." artemis_firmware_uploader_gui.py
           mkdir tmp
           mv "ArtemisFirmwareUploader.app" "tmp/"
-          create-dmg --volicon "resource/sparkdisk.icns" --background "resource/sfe_logo_med.png" "ArtemisFirmwareUploader.dmg" "tmp/"
+          create-dmg --volicon "resource/sparkdisk.icns" --background "resource/sfe_logo_med.png" --icon "ArtemisFirmwareUploader.app" 200 200 --window-size 600 440 "ArtemisFirmwareUploader.dmg" "tmp/"
           
       - uses: actions/upload-artifact@v3
         with:
