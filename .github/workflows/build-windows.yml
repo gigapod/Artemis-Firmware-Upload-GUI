@@ -58,6 +58,9 @@ jobs:
         with:
           name: ArtemisUploaderWindows.zip
           path: tools/ArtemisUploaderWindows.zip
+          
+      - id: output-installer
+        run: echo "::set-output name=filename::ArtemisUploaderWindows.zip"
     
         
         
