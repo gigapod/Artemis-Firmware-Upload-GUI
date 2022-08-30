@@ -5,14 +5,32 @@ SparkFun Artemis Firmware Uploader GUI
 
 The Artemis Firmware Uploader (AFU) is a simple to use GUI for updating firmware and the bootloader on Artemis based products.
 
-To use:
+## Installation
+To use the compiled binaries for the supported platforms, use the binaries that are part of the latest release. 
 
-* Download the [repo ZIP](https://github.com/sparkfun/Artemis-Firmware-Upload-GUI/archive/master.zip)
-* Run the artemis_firmware_uploader_gui executable for your platform
-  * **/Windows** contains the Windows .exe
-  * **/OSX** contains an executable for macOS X
-  * **/Linux** contains an executable built on Ubuntu
-  * **/Raspberry_Pi__Debian** contains an executable for Raspberry Pi 4 (Debian Buster)
+### Windows 
+* Download the release zip file - ArtemisUploader.win.zip
+* Unzip the application file - ArtemisUploader.exe
+* Double click ArtemisUploader.exe to start the application
+
+### macOS
+* Download the release dmg file - ArtemisUploader.dmg
+* Double click ArtemisUpaloder.dmg to mount the disk image. A Finder window with the image contents is shown
+* Copy the ArtemisUploader.app application file to the desired locatoin (Often /Applications)
+* Unmount the Artemis Uploader disk image
+* Double click ArtemisUploader.app to launch the app
+* Since this application isn't signed, exeuction must be approved in "System Preferences" > "Security & Privacy". In the "General" section, the application should be listed. Select the "Run Anyway" option to launch ArtemisUploader.app. 
+
+### Linux
+* Download the release  file - ArtemisUploader.linux.gz
+* At a command line, uncompress the file.  $ gunzip ./ArtemisUploader.linux.gz
+* Give the binary execute permissions:  $ chmod 755 ./ArtemisUploader
+* Run the application: $ ./ArtemisUploader.
+
+
+## Using the Artemis Uploader
+  
+  
 * Click ```Browse``` and select the firmware file you'd like to upload (should end in *.bin*)
 * Attach the Artemis target board over USB
 * Select the COM port (click ```Refresh``` to refresh the list of USB devices)
@@ -41,9 +59,6 @@ Repository Contents
 -------------------
 
 * **/tools** contains the python source files and SVL binary
-* **/Windows** contains the Windows .exe
-* **/OSX** contains an executable for macOS X
-* **/Linux** contains an executable built on Ubuntu
 * **/Raspberry_Pi__Debian** contains an executable for Raspberry Pi 4 (Debian Buster)
 * **LICENSE.md** contains the licence information
 
