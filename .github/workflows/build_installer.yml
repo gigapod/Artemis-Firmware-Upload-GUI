@@ -46,7 +46,7 @@ jobs:
           name: Upload macOS build dmg
           path: tools/ArtemisFirmwareUploader.dmg
           
-  # Build the installer on mac
+  # Build the installer on Linux
   linux-build:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
@@ -69,9 +69,37 @@ jobs:
         run: |
           cd tools
           pyinstaller --onefile --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." artemis_firmware_uploader_gui.py
-          chmod 755 artemis_firmware_uploader_gui
           
       - uses: actions/upload-artifact@v3
         with:
           name: Upload Linux application
           path: tools/artemis_firmware_uploader_gui
+
+  # Build the installer on Linux
+  windows-build:
+    # The type of runner that the job will run on
+    runs-on: windows-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # Setup python
+      - name: System Setup
+        run: |
+          pip3 install pyserial pycryptodome pyinstaller pyqt5
+
+      # Build the installer
+      - name: Build Linux Installer
+        run: |
+          cd tools
+          pyinstaller --onefile --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin;." --add-data="Artemis-Logo-Rounded.png;." artemis_firmware_uploader_gui.py
+          
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Upload Windows application
+          path: tools/artemis_firmware_uploader_gui.exe
