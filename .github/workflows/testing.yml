@@ -16,5 +16,7 @@ jobs:
   testing-events:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "event name is:" ${{ github.event_name }} 
-      - run: echo "context" '${{ toJSON(github) }}'
+      - name: event_name 
+        run: echo "event name is:" ${{ github.event_name }} 
+      - name: Dump context
+        run: echo '${{ toJSON(github) }}'
