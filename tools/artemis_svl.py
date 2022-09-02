@@ -87,7 +87,7 @@ SVL_CMD_FRAME = 0x04  # indicate app data frame
 SVL_CMD_RETRY = 0x05  # request re-send frame
 SVL_CMD_DONE = 0x06  # finished - all data sent
 
-barWidthInCharacters = 50  # Width of progress bar, ie [###### % complete
+barWidthInCharacters = 40  # Width of progress bar, ie [###### % complete
 
 crcTable = (
     0x0000, 0x8005, 0x800F, 0x000A, 0x801B, 0x001E, 0x0014, 0x8011,
@@ -213,7 +213,8 @@ def phase_setup(ser):
         return False  # failed to enter bootloader
 
     log_verbose('\t')
-    log_message('Got SVL Bootloader Version: ' + str(int.from_bytes(packet['data'], 'big')))
+    log_message(' - Version: ' + str(int.from_bytes(packet['data'], 'big') ) )
+    log_message('')
     log_verbose('\tSending \'enter bootloader\' command')
 
     send_packet(ser, SVL_CMD_BL, b'')
@@ -247,13 +248,14 @@ def phase_bootload(ser, binfile):
         progressChars = 0
 
         if (not _verbose):
-            log_message("[", end='')
+            log_message("[Uploading]   0%", end='')
 
         log_verbose('\thave ' + str(total_len) +
                      ' bytes to send in ' + str(total_frames) + ' frames')
 
         bl_done = False
         bl_succeeded = True
+
         while((bl_done == False) and (bl_succeeded == True)):
 
             # wait for indication by Artemis
@@ -290,13 +292,11 @@ def phase_bootload(ser, binfile):
                                  ', length: '+str(len(frame_data)))
                 else:
                     percentComplete = curr_frame * 100 / total_frames
-                    percentCompleteInChars = math.ceil(
+                    percentCompleteInChars = math.floor(
                         percentComplete / 100 * barWidthInCharacters)
-                    while(progressChars < percentCompleteInChars):
+                    while(progressChars <= percentCompleteInChars):
                         progressChars = progressChars + 1
-                        log_message('#', end='', flush=True)
-                    if (percentComplete == 100):
-                        log_message("]", end='')
+                        log_message(u'\b\b\b\b\u2588 {:2d}%'.format(int(percentComplete)), end='', flush=True) # bright block
 
                 send_packet(ser, SVL_CMD_FRAME, frame_data)
 
@@ -304,15 +304,16 @@ def phase_bootload(ser, binfile):
                 send_packet(ser, SVL_CMD_DONE, b'')
                 bl_done = True
 
+        log_message('\n')
         if(bl_succeeded == True):
             log_verbose('\n\t')
-            log_message('Upload complete')
+            log_message('Upload Successful')
             endTime = time.time()
             bps = total_len / (endTime - startTime)
             log_verbose('\n\tNominal bootload bps: ' + str(round(bps, 2)))
         else:
             log_verbose('\n\t')
-            log_message('Upload failed')
+            log_message('Upload Failed')
 
         return bl_succeeded
 
@@ -359,7 +360,7 @@ def upload_firmware(binfile, port, baud, timeout=0.5):
     try:
         num_tries = 3
 
-        log_message('\n\nArtemis SVL Bootloader')
+        log_message('\nArtemis SVL Bootloader', end='')
 
         log_verbose("Script version " + SCRIPT_VERSION_MAJOR +
                      "." + SCRIPT_VERSION_MINOR)
@@ -382,6 +383,9 @@ def upload_firmware(binfile, port, baud, timeout=0.5):
 
                 # Perform baud rate negotiation
                 entered_bootloader = phase_setup(ser)
+                log_message("Uploading:\t" + binfile)
+                log_message("Port:\t" + port)
+                log_message("Baud Rate:\t"+str(baud)+'\n')
 
                 if(entered_bootloader == True):
                     bl_success = phase_bootload(ser, binfile)
@@ -390,6 +394,8 @@ def upload_firmware(binfile, port, baud, timeout=0.5):
                         break
                 else:
                     log_verbose("Failed to enter bootload phase")
+
+
 
             if(bl_success == True):
                 break
@@ -400,8 +406,6 @@ def upload_firmware(binfile, port, baud, timeout=0.5):
 
     except serial.SerialException:
         phase_serial_port_help(port)
-
-    exit()
 
 
 # ******************************************************************************
