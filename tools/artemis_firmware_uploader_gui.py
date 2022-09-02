@@ -57,7 +57,7 @@ artemis_svl.bin (the bootloader binary)
 #       3. Push the wired update blob into the Artemis module
 
 from typing import Iterator, Tuple
-from PyQt5.QtCore import QSettings, QProcess, QTimer
+from PyQt5.QtCore import QSettings, QProcess, QTimer, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QWidget, QLabel, QComboBox, QGridLayout, \
     QPushButton, QApplication, QLineEdit, QFileDialog, QPlainTextEdit, \
     QAction, QActionGroup, QMenu, QMenuBar, QMainWindow
@@ -73,6 +73,59 @@ import array
 import hashlib
 import hmac
 import binascii
+
+
+
+#--------------------------------------------------------------------------------------
+# KDB Testing of threads
+#
+import queue
+
+# Move upload to a thread, jobs passed in via a queue
+
+# define a worker class/thread
+
+class AUxUploadWorker(QThread):
+
+    # define signals to communicate with the GUI
+
+    sig_message     = pyqtSignal(str)
+    sig_finished    = pyqtSignal(int)
+
+    def __init__(self, theQueue):
+
+        QThread.__init__(self)
+
+        self._queue = theQueue
+
+
+    def dispatch_job(self, job):
+
+        # dummy work for now
+
+        for i in range(5):
+
+            self.sig_message.emit("   do work: " + str(i))
+            time.sleep(.3)
+
+
+    def run(self):
+
+        # Wait on jobs .. forever
+
+        while True:
+
+            job = self._queue.get()
+
+            self.sig_message.emit("THREAD: Recieved Job")
+            self.sig_message.emit(str(job))
+
+            self.dispatch_job(job)
+
+            self.sig_finished.emit(0)
+
+
+#--------------------------------------------------------------------------------------
 
 BOOTLOADER_VERSION = 5 # << Change this to match the version of artemis_svl.bin
 
@@ -404,6 +457,18 @@ class MainWindow(QMainWindow):
         self.messages.setReadOnly(True)
         self.messages.clear()  # Clear the message window
 
+        # KDB testing -
+
+        self._queue = queue.Queue()
+
+        self._thread = AUxUploadWorker(self._queue)
+
+        self._thread.sig_message.connect(self.addMessage)
+        self._thread.sig_finished.connect(self.on_finished)
+
+        self._thread.start()
+
+    @pyqtSlot(str)
     def addMessage(self, msg: str) -> None:
         """Add msg to the messages window, ensuring that it is visible"""
         self.messages.moveCursor(QTextCursor.End)
@@ -411,6 +476,13 @@ class MainWindow(QMainWindow):
         self.messages.appendPlainText(msg)
         self.messages.ensureCursorVisible()
         self.repaint() # Update/refresh the message window
+
+    @pyqtSlot(int)
+    def on_finished(self, status) -> None:
+
+        self.addMessage("Finished work. Status: " + str(status))
+
+    # end DKB
 
     def _load_settings(self) -> None:
         """Load settings on startup."""
@@ -545,7 +617,12 @@ class MainWindow(QMainWindow):
 
         self.addMessage("\nUploading firmware")
 
-        self.upload_main() # Call artemis_svl.py (previously this spawned a QProcess)
+        ### KDB Test
+        ## Make up a job and pass in
+        theJob = { "type": "firmware", "port":self.port, "baud": self.baudRate, "file":self.fileLocation_lineedit.text()}
+
+        self._queue.put(theJob)
+        #self.upload_main() # Call artemis_svl.py (previously this spawned a QProcess)
 
     def on_update_bootloader_btn_pressed(self) -> None:
         """Check if port is available"""
