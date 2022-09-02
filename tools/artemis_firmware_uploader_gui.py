@@ -79,6 +79,7 @@ import binascii
 #--------------------------------------------------------------------------------------
 # KDB Testing of threads
 #
+import artemis_svl
 import queue
 
 # Move upload to a thread, jobs passed in via a queue
@@ -98,31 +99,52 @@ class AUxUploadWorker(QThread):
 
         self._queue = theQueue
 
+        artemis_svl.set_output_func(self.message_callback)
+
+        # flag used to help manage when to stop
+        self._shutdown = False;
+
+
+    def __del__(self):
+
+        self._shutdown = True
+        self.wait()
+
+    def message_callback(self, message):
+        self.sig_message.emit(message)
 
     def dispatch_job(self, job):
 
         # dummy work for now
-
-        for i in range(5):
-
-            self.sig_message.emit("   do work: " + str(i))
-            time.sleep(.3)
+        if job['type'] == 'firmware':
+            artemis_svl.upload_firmware(job['file'], job['port'], job['baud'])
+            return 1
+        else:
+            self.sig_message.emit("Unknown job type. Aborting")
+            return 0
 
 
     def run(self):
 
         # Wait on jobs .. forever
 
-        while True:
+        self._shutdown = False
 
-            job = self._queue.get()
+        # run
+        while not self._shutdown:
 
-            self.sig_message.emit("THREAD: Recieved Job")
-            self.sig_message.emit(str(job))
+            if self._queue.empty():
+                time.sleep(1)
+            else:
+                job = self._queue.get()
 
-            self.dispatch_job(job)
+                self.sig_message.emit("THREAD: Recieved Job")
+                self.sig_message.emit(str(job))
 
-            self.sig_finished.emit(0)
+                status = self.dispatch_job(job)
+
+                self.sig_message.emit("Finished")
+                self.sig_finished.emit(status)
 
 
 #--------------------------------------------------------------------------------------
