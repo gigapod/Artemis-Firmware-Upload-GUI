@@ -90,7 +90,7 @@ class AUxUploadWorker(QThread):
 
     # define signals to communicate with the GUI
 
-    sig_message     = pyqtSignal(str)
+    sig_message     = pyqtSignal(str, bool)
     sig_finished    = pyqtSignal(int)
 
     def __init__(self, theQueue):
@@ -110,12 +110,14 @@ class AUxUploadWorker(QThread):
         self._shutdown = True
         self.wait()
 
-    def message_callback(self, message):
-        self.sig_message.emit(message)
+    def message_callback(self, message, **kwargs):
+
+        # if end in keyword dict, then it's a no newline
+        self.sig_message.emit(message, 'end' in kwargs)
 
     def dispatch_job(self, job):
 
-        # dummy work for now
+        # Check job type, run desired command
         if job['type'] == 'firmware':
             artemis_svl.upload_firmware(job['file'], job['port'], job['baud'])
             return 1
@@ -138,12 +140,12 @@ class AUxUploadWorker(QThread):
             else:
                 job = self._queue.get()
 
-                self.sig_message.emit("THREAD: Recieved Job")
-                self.sig_message.emit(str(job))
+                self.message_callback("THREAD: Recieved Job")
+                self.message_callback(str(job))
 
                 status = self.dispatch_job(job)
 
-                self.sig_message.emit("Finished")
+                self.message_callback("THREAD: Finished Job")
                 self.sig_finished.emit(status)
 
 
@@ -479,6 +481,7 @@ class MainWindow(QMainWindow):
         self.messages.setReadOnly(True)
         self.messages.clear()  # Clear the message window
 
+        #---------------------------------------------------
         # KDB testing -
 
         self._queue = queue.Queue()
@@ -490,13 +493,19 @@ class MainWindow(QMainWindow):
 
         self._thread.start()
 
-    @pyqtSlot(str)
-    def addMessage(self, msg: str) -> None:
+    @pyqtSlot(str, bool)
+    def addMessage(self, msg: str, no_newline=False) -> None:
         """Add msg to the messages window, ensuring that it is visible"""
         self.messages.moveCursor(QTextCursor.End)
+        #self.messages.ensureCursorVisible()
+
+        if no_newline:
+            self.messages.insertPlainText(msg)
+        else:
+            self.messages.appendPlainText(msg)
+        self.messages.moveCursor(QTextCursor.End)
         self.messages.ensureCursorVisible()
-        self.messages.appendPlainText(msg)
-        self.messages.ensureCursorVisible()
+
         self.repaint() # Update/refresh the message window
 
     @pyqtSlot(int)

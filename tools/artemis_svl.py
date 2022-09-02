@@ -52,7 +52,7 @@ _output_func = None
 def log_message(the_message : str, **kwargs):
 
     if _output_func != None:
-        _output_func(the_message)
+        _output_func(the_message, **kwargs)
 
 def log_verbose(the_message : str):
 
@@ -247,7 +247,7 @@ def phase_bootload(ser, binfile):
         progressChars = 0
 
         if (not _verbose):
-            log_message("[") #, end='')
+            log_message("[", end='')
 
         log_verbose('\thave ' + str(total_len) +
                      ' bytes to send in ' + str(total_frames) + ' frames')
