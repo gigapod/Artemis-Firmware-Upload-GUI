@@ -33,7 +33,7 @@ jobs:
       # Setup python
       - name: System Setup
         run: |
-          pip3 install pyserial pycryptodome pyinstaller pyqt5
+          pip3 install pyserial pycryptodome pyinstaller pyqt5 darkdetect
 
       # Build the installer
       - name: Build Linux Installer
