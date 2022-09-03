@@ -83,6 +83,8 @@ _APP_VERSION = "1.1.0"
 import artemis_svl
 import queue
 
+import darkdetect
+
 # Note: No using QThread, but just standard python threading. QThread caused
 # memory corruption issues on some platforms.
 from threading import Thread
@@ -406,7 +408,10 @@ class MainWindow(QMainWindow):
 
         # Messages Window
         self.messages = QPlainTextEdit()
-        self.messages.setStyleSheet("QPlainTextEdit { color: #C0C0C0;}")
+        isDark = darkdetect.isDark()
+        color =  "C0C0C0" if isDark else "424242"
+        self.messages.setStyleSheet("QPlainTextEdit { color: #" + color + ";}")
+
         # Attempting to reduce window size
         #self.messages.setMinimumSize(1, 2)
         #self.messages.resize(1, 2)
@@ -429,7 +434,8 @@ class MainWindow(QMainWindow):
         boardMenu.addAction(a)
 
         logo = QLabel(self)
-        pixmap = QPixmap(resource_path('artemis-icon.png'))
+        icon = "artemis-icon.png" if isDark else "artemis-icon-blk.png"
+        pixmap = QPixmap(resource_path(icon))
         logo.setPixmap(pixmap)
 
         # Status Bar
