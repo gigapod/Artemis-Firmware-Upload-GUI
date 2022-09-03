@@ -40,7 +40,7 @@ jobs:
       - name: Build Mac Installer
         run: |
           cd tools
-          pyinstaller --windowed -n ArtemisUploader --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." artemis_firmware_uploader_gui.py
+          pyinstaller --windowed -n ArtemisUploader --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." --add-data="artemis-icon-blk.png:." --add-data="artemis-icon.png:." artemis_firmware_uploader_gui.py
           mkdir tmp
           mv "ArtemisUploader.app" "tmp/"
           create-dmg --volicon "resource/sparkdisk.icns" --background "resource/sfe_logo_med.png" --hide-extension "ArtemisUploader.app" --icon "ArtemisUploader.app" 100 100 --window-size 600 440 --app-drop-link 400 100 "ArtemisUploader.dmg" "tmp/"
