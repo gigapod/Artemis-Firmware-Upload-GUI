@@ -429,7 +429,7 @@ class MainWindow(QMainWindow):
         boardMenu.addAction(a)
 
         logo = QLabel(self)
-        pixmap = QPixmap('artemis-icon.png')
+        pixmap = QPixmap(resource_path('artemis-icon.png'))
         logo.setPixmap(pixmap)
 
         # Status Bar
@@ -677,7 +677,7 @@ class MainWindow(QMainWindow):
         """Check if file exists"""
         fileExists = False
         try:
-            f = open(resource_path(self.appFile))
+            f = open(resource_path(relative_path)(self.appFile))
             fileExists = True
         except IOError:
             fileExists = False
