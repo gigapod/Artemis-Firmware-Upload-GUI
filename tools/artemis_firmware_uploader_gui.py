@@ -406,7 +406,7 @@ class MainWindow(QMainWindow):
 
         # Messages Window
         self.messages = QPlainTextEdit()
-        self.messages.setStyleSheet("QPlainTextEdit { color: #ED820E;}")
+        self.messages.setStyleSheet("QPlainTextEdit { color: #C0C0C0;}")
         # Attempting to reduce window size
         #self.messages.setMinimumSize(1, 2)
         #self.messages.resize(1, 2)
