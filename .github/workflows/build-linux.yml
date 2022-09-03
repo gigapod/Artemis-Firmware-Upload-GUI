@@ -39,7 +39,7 @@ jobs:
       - name: Build Linux Installer
         run: |
           cd tools
-          pyinstaller --onefile --name ArtemisUploader --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." artemis_firmware_uploader_gui.py
+          pyinstaller --onefile --name ArtemisUploader --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." --add-data="artemis_icon_blk.png;." --add-data="artemis_icon.png;."  artemis_firmware_uploader_gui.py
           gzip ArtemisUploader
           mv ArtemisUploader.gz ArtemisUploader.linux.gz
           
