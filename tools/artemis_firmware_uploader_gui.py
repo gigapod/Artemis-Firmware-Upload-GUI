@@ -57,11 +57,11 @@ artemis_svl.bin (the bootloader binary)
 #       3. Push the wired update blob into the Artemis module
 
 from typing import Iterator, Tuple
-from PyQt5.QtCore import QSettings, QProcess, QTimer, pyqtSignal, pyqtSlot, QObject
+from PyQt5.QtCore import QSettings, QProcess, QTimer, pyqtSignal, pyqtSlot, QObject, Qt
 from PyQt5.QtWidgets import QWidget, QLabel, QComboBox, QGridLayout, \
     QPushButton, QApplication, QLineEdit, QFileDialog, QPlainTextEdit, \
     QAction, QActionGroup, QMenu, QMenuBar, QMainWindow
-from PyQt5.QtGui import QCloseEvent, QTextCursor, QIcon, QFont
+from PyQt5.QtGui import QCloseEvent, QTextCursor, QIcon, QFont, QPixmap
 from PyQt5.QtSerialPort import QSerialPortInfo
 import sys
 import time
@@ -428,6 +428,10 @@ class MainWindow(QMainWindow):
         a = boardGroup.addAction(self.apollo3)
         boardMenu.addAction(a)
 
+        logo = QLabel(self)
+        pixmap = QPixmap('artemis-icon.png')
+        logo.setPixmap(pixmap)
+
         # Status Bar
         self.statusBar()
 
@@ -440,6 +444,8 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(port_label, 2, 0)
         layout.addWidget(self.port_combobox, 2, 1)
+
+        layout.addWidget(logo, 2,2, 2,3, alignment=Qt.AlignCenter)
 
         layout.addWidget(baud_label, 3, 0)
         layout.addWidget(self.baud_combobox, 3, 1)
