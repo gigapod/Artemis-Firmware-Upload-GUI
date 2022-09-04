@@ -83,7 +83,9 @@ _APP_VERSION = "1.1.0"
 import artemis_svl
 import queue
 
+# determine the current GUI style (TODO: Otherway to do this?)
 import darkdetect
+import platform
 
 # Note: No using QThread, but just standard python threading. QThread caused
 # memory corruption issues on some platforms.
@@ -184,6 +186,37 @@ class AUxComboBox(QComboBox):
     def showPopup(self):
         self.popupAboutToBeShown.emit()
         super().showPopup()
+
+#----------------------------------------------------------------
+# ux_is_darkmode()
+#
+# Helpful function used during setup to determine if the Ux is in 
+# dark mode
+_is_darkmode = None
+def ux_is_darkmode() -> bool:
+    global _is_darkmode
+
+    if _is_darkmode != None:
+        return _is_darkmode
+
+    osName = platform.system()
+
+    if osName == "Darwin":
+        _is_darkmode = darkdetect.isDark()
+
+    elif osName == "Windows":
+        # it appears that the Qt interface on Windows doesn't apply DarkMode
+        # So, just keep it light
+        _is_darkmode = False
+    elif osName == "Linux":
+        # Need to check this on Linux at some pont
+        _is_darkmod = False
+
+    else: 
+        _is_darkmode = False 
+
+    return _is_darkmode
+
 #--------------------------------------------------------------------------------------
 
 BOOTLOADER_VERSION = 5 # << Change this to match the version of artemis_svl.bin
@@ -408,8 +441,7 @@ class MainWindow(QMainWindow):
 
         # Messages Window
         self.messages = QPlainTextEdit()
-        isDark = darkdetect.isDark()
-        color =  "C0C0C0" if isDark else "424242"
+        color =  "C0C0C0" if ux_is_darkmode() else "424242"
         self.messages.setStyleSheet("QPlainTextEdit { color: #" + color + ";}")
 
         # Attempting to reduce window size
@@ -433,8 +465,9 @@ class MainWindow(QMainWindow):
         a = boardGroup.addAction(self.apollo3)
         boardMenu.addAction(a)
 
+        # Add an artemis logo to the user interface
         logo = QLabel(self)
-        icon = "artemis-icon.png" if isDark else "artemis-icon-blk.png"
+        icon = "artemis-icon.png" if ux_is_darkmode() else "artemis-icon-blk.png"
         pixmap = QPixmap(resource_path(icon))
         logo.setPixmap(pixmap)
 
@@ -488,6 +521,7 @@ class MainWindow(QMainWindow):
 
         self._thread.start()
 
+    #--------------------------------------------------------------
     @pyqtSlot(str, bool)
     def addMessage(self, msg: str, no_newline=False) -> None:
         """Add msg to the messages window, ensuring that it is visible"""
@@ -512,13 +546,18 @@ class MainWindow(QMainWindow):
 
         self.repaint() # Update/refresh the message window
 
+    #--------------------------------------------------------------
     @pyqtSlot(int)
     def on_finished(self, status) -> None:
 
         self.disable_interface(False)
+        msg = "successfully" if success == 0 else "with an error"
+        self.statusBar().showMessage("The upload process finished " + msg, 2000)        
 
+    #--------------------------------------------------------------
     @pyqtSlot()
     def on_port_combobox(self):
+        self.statusBar().showMessage("Updating ports...", 500)
         self.update_com_ports()
 
 
@@ -699,6 +738,8 @@ class MainWindow(QMainWindow):
 
     def on_browse_btn_pressed(self) -> None:
         """Open dialog to select bin file."""
+
+        self.statusBar().showMessage("Select firmware file for upload...", 4000)
         options = QFileDialog.Options()
         fileName, _ = QFileDialog.getOpenFileName(
             None,
