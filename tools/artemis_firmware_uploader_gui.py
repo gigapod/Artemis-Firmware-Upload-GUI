@@ -233,14 +233,23 @@ def gen_serial_ports() -> Iterator[Tuple[str, str, str]]:
     ports = QSerialPortInfo.availablePorts()
     return ((p.description(), p.portName(), p.systemLocation()) for p in ports)
 
+#---------------------------------------------------------------------------------------
+# resource_path()
+#
+# Get the runtime path of app resources. This changes depending on how the app is
+# run -> locally, or via pyInstaller
+#
 #https://stackoverflow.com/a/50914550
+
 def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
+
     base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
     return os.path.join(base_path, relative_path)
 
 # noinspection PyArgumentList
 
+#---------------------------------------------------------------------------------------
 class MainWindow(QMainWindow):
     """Main Window"""
 
@@ -438,7 +447,7 @@ class MainWindow(QMainWindow):
         # Messages Bar
         messages_label = QLabel(self.tr('Status / Warnings:'))
 
-        # Messages Window
+        # Messages/Console Window
         self.messages = QPlainTextEdit()
         color =  "C0C0C0" if ux_is_darkmode() else "424242"
         self.messages.setStyleSheet("QPlainTextEdit { color: #" + color + ";}")
