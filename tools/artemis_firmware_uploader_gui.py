@@ -76,7 +76,8 @@ import binascii
 
 
 # What version is this app (need something)
-_APP_VERSION = "1.1.0"
+_APP_VERSION = "v2.1.0"
+_APP_NAME = "Artemis Firmware Uploader"
 #--------------------------------------------------------------------------------------
 # KDB Testing of threads
 #
@@ -226,8 +227,6 @@ SETTING_PORT_NAME = 'port_name'
 SETTING_FILE_LOCATION = 'message'
 SETTING_BAUD_RATE = '115200' # Default to 115200 for upload
 SETTING_ARTEMIS = 'True' # Default to Artemis-based boards
-
-guiVersion = 'v2.0'
 
 def gen_serial_ports() -> Iterator[Tuple[str, str, str]]:
     """Return all available serial ports."""
@@ -471,9 +470,6 @@ class MainWindow(QMainWindow):
         pixmap = QPixmap(resource_path(icon))
         logo.setPixmap(pixmap)
 
-        # Status Bar
-        self.statusBar()
-
         # Arrange Layout
         layout = QGridLayout()
         
@@ -499,7 +495,6 @@ class MainWindow(QMainWindow):
         widget.setLayout(layout)
         self.setCentralWidget(widget)
 
-        self.setWindowTitle("Artemis Firmware Uploader - Version " + _APP_VERSION)
 
         #self._clean_settings() # This will delete all existing settings! Use with caution!
         
@@ -508,6 +503,13 @@ class MainWindow(QMainWindow):
         # Make the text edit window read-only
         self.messages.setReadOnly(True)
         self.messages.clear()  # Clear the message window
+
+        self.setWindowTitle( _APP_NAME + " - " + _APP_VERSION)
+
+        # Initial Status Bar
+        self.statusBar().showMessage(_APP_NAME + " - " + _APP_VERSION, 10000)
+
+
 
         #---------------------------------------------------
         # KDB testing -
@@ -1495,8 +1497,8 @@ class MainWindow(QMainWindow):
 if __name__ == '__main__':
     import sys
     app = QApplication([])
-    app.setOrganizationName('SparkFun')
-    app.setApplicationName('Artemis Firmware Uploader ' + guiVersion)
+    app.setOrganizationName('SparkFun Electronics')
+    app.setApplicationName(_APP_NAME + ' - ' + _APP_VERSION)
     app.setWindowIcon(QIcon(resource_path("Artemis-Logo-Rounded.png")))
     app.setApplicationVersion(_APP_VERSION)
     w = MainWindow()
