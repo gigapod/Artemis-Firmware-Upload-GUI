@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 # SparkFun Variable Loader
 # Variable baud rate bootloader for Artemis Apollo3 modules
 
@@ -43,31 +44,23 @@ import os.path
 from sys import exit
 
 
-#-------------------------------------------------------------------------------------
-# Output items
-
 _verbose = False
-_output_func = None
 
-def log_message(the_message : str, **kwargs):
-
-    if _output_func != None:
-        _output_func(the_message, **kwargs)
-
-def log_verbose(the_message : str):
-
-    if _verbose :
-        log_message(the_message)
-
-
-def set_output_func(the_func):
-    global _output_func
-    _output_func = the_func
-
-
-def set_verbose(doVerbose: bool):
+def set_verbose(bVerbose):
     global _verbose
-    _verbose = doVerbose
+
+    _verbose = bVerbose
+
+def verboseprint(*args):
+
+    if not _verbose:
+        return
+
+    # Print each argument separately so caller doesn't need to
+    # stuff everything to be printed into a single string
+    for arg in args:
+        print(arg, end='', flush=True),
+    print()
 
 #-------------------------------------------------------------------------------------
 
@@ -200,11 +193,11 @@ def phase_setup(ser):
 
     baud_detect_byte = b'U'
 
-    log_verbose('\nPhase:\tSetup')
+    verboseprint('\nPhase:\tSetup')
 
     # Handle the serial startup blip
     ser.reset_input_buffer()
-    log_verbose('\tCleared startup blip')
+    verboseprint('\tCleared startup blip')
 
     ser.write(baud_detect_byte)             # send the baud detection character
 
@@ -212,10 +205,10 @@ def phase_setup(ser):
     if(packet['timeout'] or packet['crc']):
         return False  # failed to enter bootloader
 
-    log_verbose('\t')
-    log_message(' - Version: ' + str(int.from_bytes(packet['data'], 'big') ) )
-    log_message('')
-    log_verbose('\tSending \'enter bootloader\' command')
+    verboseprint('\t')
+    print(' - Version: ' + str(int.from_bytes(packet['data'], 'big') ) )
+    print('')
+    verboseprint('\tSending \'enter bootloader\' command')
 
     send_packet(ser, SVL_CMD_BL, b'')
 
@@ -237,7 +230,7 @@ def phase_bootload(ser, binfile):
     resend_max = 4
     resend_count = 0
 
-    log_verbose('\nPhase:\tBootload')
+    verboseprint('\nPhase:\tBootload')
 
     with open(binfile, mode='rb') as binfile:
         application = binfile.read()
@@ -248,9 +241,9 @@ def phase_bootload(ser, binfile):
         progressChars = 0
 
         if (not _verbose):
-            log_message("[Uploading]   0%", end='')
+            print("[Uploading]   0%", end='')
 
-        log_verbose('\thave ' + str(total_len) +
+        verboseprint('\thave ' + str(total_len) +
                      ' bytes to send in ' + str(total_frames) + ' frames')
 
         bl_done = False
@@ -261,24 +254,24 @@ def phase_bootload(ser, binfile):
             # wait for indication by Artemis
             packet = wait_for_packet(ser)
             if(packet['timeout'] or packet['crc']):
-                log_verbose('\n\tError receiving packet')
-                log_verbose(packet)
-                log_verbose('\n')
+                verboseprint('\n\tError receiving packet')
+                verboseprint(packet)
+                verboseprint('\n')
                 bl_succeeded = False
                 bl_done = True
 
             if(packet['cmd'] == SVL_CMD_NEXT):
-                # log_verbose('\tgot frame request')
+                # verboseprint('\tgot frame request')
                 curr_frame += 1
                 resend_count = 0
             elif(packet['cmd'] == SVL_CMD_RETRY):
-                log_verbose('\t\tRetrying...')
+                verboseprint('\t\tRetrying...')
                 resend_count += 1
                 if(resend_count >= resend_max):
                     bl_succeeded = False
                     bl_done = True
             else:
-                log_message('Timeout or unknown error')
+                print('Timeout or unknown error')
                 bl_succeeded = False
                 bl_done = True
 
@@ -288,7 +281,7 @@ def phase_bootload(ser, binfile):
 
                 if _verbose:
 
-                    log_verbose('\tSending frame #'+str(curr_frame) +
+                    verboseprint('\tSending frame #'+str(curr_frame) +
                                  ', length: '+str(len(frame_data)))
                 else:
                     percentComplete = curr_frame * 100 / total_frames
@@ -296,7 +289,7 @@ def phase_bootload(ser, binfile):
                         percentComplete / 100 * barWidthInCharacters)
                     while(progressChars <= percentCompleteInChars):
                         progressChars = progressChars + 1
-                        log_message(u'\b\b\b\b\u2588 {:2d}%'.format(int(percentComplete)), end='', flush=True) # bright block
+                        print(u'\b\b\b\b\u2588 {:2d}%'.format(int(percentComplete)), end='', flush=True) # bright block
 
                 send_packet(ser, SVL_CMD_FRAME, frame_data)
 
@@ -304,16 +297,16 @@ def phase_bootload(ser, binfile):
                 send_packet(ser, SVL_CMD_DONE, b'')
                 bl_done = True
 
-        log_message('\n')
+        print('\n')
         if(bl_succeeded == True):
-            log_verbose('\n\t')
-            log_message('Upload Successful')
+            verboseprint('\n\t')
+            print('Upload Successful')
             endTime = time.time()
             bps = total_len / (endTime - startTime)
-            log_verbose('\n\tNominal bootload bps: ' + str(round(bps, 2)))
+            verboseprint('\n\tNominal bootload bps: ' + str(round(bps, 2)))
         else:
-            log_verbose('\n\t')
-            log_message('Upload Failed')
+            verboseprint('\n\t')
+            print('Upload Failed')
 
         return bl_succeeded
 
@@ -330,25 +323,25 @@ def phase_serial_port_help( port ):
     # First check to see if user has the given port open
     for dev in devices:
         if(dev.device.upper() == port.upper()):
-            log_message(dev.device + " is currently open. Please close any other terminal programs that may be using " +
+            print(dev.device + " is currently open. Please close any other terminal programs that may be using " +
                   dev.device + " and try again.")
             exit()
 
     # otherwise, give user a list of possible com ports
-    log_message(port.upper() +
+    print(port.upper() +
           " not found but we detected the following serial ports:")
     for dev in devices:
         if 'CH340' in dev.description:
-            log_message(
+            print(
                 dev.description + ": Likely an Arduino or derivative. Try " + dev.device + ".")
         elif 'FTDI' in dev.description:
-            log_message(
+            print(
                 dev.description + ": Likely an Arduino or derivative. Try " + dev.device + ".")
         elif 'USB Serial Device' in dev.description:
-            log_message(
+            print(
                 dev.description + ": Possibly an Arduino or derivative.")
         else:
-            log_message(dev.description)
+            print(dev.description)
 
 
 # ***********************************************************************************
@@ -360,13 +353,13 @@ def upload_firmware(binfile, port, baud, timeout=0.5):
     try:
         num_tries = 3
 
-        log_message('\nArtemis SVL Bootloader', end='')
+        print('\nArtemis SVL Bootloader', end='')
 
-        log_verbose("Script version " + SCRIPT_VERSION_MAJOR +
+        verboseprint("Script version " + SCRIPT_VERSION_MAJOR +
                      "." + SCRIPT_VERSION_MINOR)
 
         if not os.path.exists(binfile):
-            log_message("Bin file {} does not exist.".format(binfile))
+            print("Bin file {} does not exist.".format(binfile))
             exit()
 
         bl_success = False
@@ -383,17 +376,17 @@ def upload_firmware(binfile, port, baud, timeout=0.5):
 
                 # Perform baud rate negotiation
                 entered_bootloader = phase_setup(ser)
-                log_message("Uploading:\t" + binfile)
-                log_message("Port:\t" + port)
-                log_message("Baud Rate:\t"+str(baud)+'\n')
+                print("Uploading:\t" + binfile)
+                print("Port:\t" + port)
+                print("Baud Rate:\t"+str(baud)+'\n')
 
                 if(entered_bootloader == True):
                     bl_success = phase_bootload(ser, binfile)
                     if(bl_success == True):     # Bootload
-                        #log_message("Bootload complete!")
+                        #print("Bootload complete!")
                         break
                 else:
-                    log_verbose("Failed to enter bootload phase")
+                    verboseprint("Failed to enter bootload phase")
 
 
 
@@ -401,7 +394,7 @@ def upload_firmware(binfile, port, baud, timeout=0.5):
                 break
 
         if(entered_bootloader == False):
-            log_message(
+            print(
                 "Target failed to enter bootload mode. Verify the right COM port is selected and that your board has the SVL bootloader.")
 
     except serial.SerialException:
@@ -433,14 +426,13 @@ if __name__ == '__main__':
                         type=float)
 
     if len(sys.argv) < 2:
-        log_message("No port selected. Detected Serial Ports:")
+        print("No port selected. Detected Serial Ports:")
         devices = list_ports.comports()
         for dev in devices:
-            log_message(dev.description)
+            print(dev.description)
 
     args = parser.parse_args()
 
-    set_output_func(print)
     set_verbose(args.verbose)
 
     # call upload
