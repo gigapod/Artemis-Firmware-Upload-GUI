@@ -73,18 +73,62 @@ import array
 import hashlib
 import hmac
 import binascii
+import os.path
 
 
 # What version is this app (need something)
 _APP_VERSION = "v2.1.0"
 _APP_NAME = "Artemis Firmware Uploader"
+
+#---------------------------------------------------------------------------------------
+# resource_path()
+#
+# Get the runtime path of app resources. This changes depending on how the app is
+# run -> locally, or via pyInstaller
+#
+#https://stackoverflow.com/a/50914550
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
+
 #--------------------------------------------------------------------------------------
-# KDB Testing of threads
+#--------------------------------------------------------------------------------------
+# AUxIOWedge
+#
+# Used to redirect/capture output chars from the print() function and redirect to our
+# console. Allows the use of command line routines in this GUI app
+
+
+from io import TextIOWrapper, BytesIO
+from contextlib import redirect_stdout
+
+class AUxIOWedge(TextIOWrapper):
+    def __init__(self, output_funct, newline="\n"):
+        super(AUxIOWedge, self).__init__(BytesIO(),
+                                        encoding="utf-8",
+                                        errors="surrogatepass",
+                                        newline=newline)
+
+        self._output_func = output_funct
+
+    def write(self, buffer):
+
+        # Just send buffer to our output console
+        self._output_func(buffer)
+
+        return len(buffer)
+
+#--------------------------------------------------------------------------------------
+#--------------------------------------------------------------------------------------
+# Worker/threads
 #
 import artemis_svl
 import queue
 
-# determine the current GUI style (TODO: Otherway to do this?)
+# determine the current GUI style (TODO: Is there another way to do this?)
 import darkdetect
 import platform
 
@@ -92,6 +136,7 @@ import platform
 # memory corruption issues on some platforms.
 from threading import Thread
 
+#--------------------------------------------------------------------------------------
 # Move upload to a thread, jobs passed in via a queue
 
 # define a worker class/thread
@@ -100,7 +145,7 @@ class AUxUploadWorker(QObject):
 
     # define signals to communicate with the GUI
 
-    sig_message     = pyqtSignal(str, bool)
+    sig_message     = pyqtSignal(str)
     sig_finished    = pyqtSignal(int)
 
     def __init__(self, theQueue):
@@ -108,8 +153,6 @@ class AUxUploadWorker(QObject):
         QObject.__init__(self)
 
         self._queue = theQueue
-
-        artemis_svl.set_output_func(self.message_callback)
 
         self._shutdown = False;
 
@@ -121,14 +164,12 @@ class AUxUploadWorker(QObject):
         self._shutdown = True
 
     #------------------------------------------------------
-    # call back function for output from the bootloader.
+    # call back function for output from the bootloader - called from our IO wedge class.
     #
-    # Note: Since the SVL uses print, this function accepts keywords. Uses
-    #       the presence of the "end" keyword to indicate no-newline in the output
-    def message_callback(self, message, **kwargs):
+    def message_callback(self, message):
 
         # if end in keyword dict, then it's a no newline
-        self.sig_message.emit(message, 'end' in kwargs)
+        self.sig_message.emit(message)
 
     #------------------------------------------------------
     # Job dispatcher. Job is a dict.
@@ -136,16 +177,22 @@ class AUxUploadWorker(QObject):
 
         # make sure we have a job
         if 'type' not in job:
-            self.sig_message("ERROR - invalid job dispatched")
-            return 0
+            self.message_callback("ERROR - invalid job dispatched\n")
+            return 1
 
         # Check job type, run desired command
         if job['type'] == 'firmware':
-            artemis_svl.upload_firmware(job['file'], job['port'], job['baud'])
-            return 1
-        else:
-            self.sig_message.emit("Unknown job type. Aborting")
+
+            # Use an IO class to redirect the output of Print() to our
+            # console  during this call
+            ioShim = AUxIOWedge(self.message_callback)
+            with redirect_stdout(ioShim):
+                artemis_svl.upload_firmware(job['file'], job['port'], job['baud'])
+
             return 0
+        else:
+            self.message_callback("Unknown job type. Aborting\n")
+            return 1
 
         return 0
 
@@ -177,7 +224,7 @@ class AUxUploadWorker(QObject):
         self._th_process = Thread(target = self.process_loop)
         self._th_process.start()
 
-
+#----------------------------------------------------------------
 # hack to know when a combobox menu is being shown. Helpful if contents
 # of list are dynamic -- like serial ports.
 class AUxComboBox(QComboBox):
@@ -233,19 +280,7 @@ def gen_serial_ports() -> Iterator[Tuple[str, str, str]]:
     ports = QSerialPortInfo.availablePorts()
     return ((p.description(), p.portName(), p.systemLocation()) for p in ports)
 
-#---------------------------------------------------------------------------------------
-# resource_path()
-#
-# Get the runtime path of app resources. This changes depending on how the app is
-# run -> locally, or via pyInstaller
-#
-#https://stackoverflow.com/a/50914550
 
-def resource_path(relative_path):
-    """ Get absolute path to resource, works for dev and for PyInstaller """
-
-    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base_path, relative_path)
 
 # noinspection PyArgumentList
 
@@ -533,8 +568,8 @@ class MainWindow(QMainWindow):
         self._thread.start()
 
     #--------------------------------------------------------------
-    @pyqtSlot(str, bool)
-    def addMessage(self, msg: str, no_newline=False) -> None:
+    @pyqtSlot(str)
+    def addMessage(self, msg: str) -> None:
         """Add msg to the messages window, ensuring that it is visible"""
 
         self.messages.moveCursor(QTextCursor.End)
@@ -548,10 +583,6 @@ class MainWindow(QMainWindow):
 
         self.messages.insertPlainText(tmp)
 
-        # if we have a newline, append '' - move to next line
-        if not no_newline:
-            self.messages.appendPlainText('');
-
         self.messages.moveCursor(QTextCursor.End)
         self.messages.ensureCursorVisible()
 
@@ -562,7 +593,7 @@ class MainWindow(QMainWindow):
     def on_finished(self, status) -> None:
 
         self.disable_interface(False)
-        msg = "successfully" if success == 0 else "with an error"
+        msg = "successfully" if status == 0 else "with an error"
         self.statusBar().showMessage("The upload process finished " + msg, 2000)        
 
     #--------------------------------------------------------------
@@ -711,7 +742,7 @@ class MainWindow(QMainWindow):
             f.close()
 
         # send a line break across the console - start of a new activity
-        self.addMessage('_'*70, True)
+        self.addMessage('_'*70)
 
         # Make up a job and add it to the job queue. The worker thread will pick this up and
         # process the job
