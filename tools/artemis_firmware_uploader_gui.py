@@ -764,7 +764,7 @@ class MainWindow(QMainWindow):
         """Check if file exists"""
         fileExists = False
         try:
-            f = open(resource_path(relative_path)(self.appFile))
+            f = open(resource_path(self.appFile))
             fileExists = True
         except IOError:
             fileExists = False
