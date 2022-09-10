@@ -132,7 +132,7 @@ import queue
 import darkdetect
 import platform
 
-# Note: No using QThread, but just standard python threading. QThread caused
+# Note: Not using QThread, but just standard python threading. QThread caused
 # memory corruption issues on some platforms.
 from threading import Thread
 
@@ -157,6 +157,7 @@ class AUxUploadWorker(QObject):
         self._shutdown = False;
 
     def __del__(self):
+
         self._shutdown = True
 
     def shutdown(self):
@@ -168,7 +169,8 @@ class AUxUploadWorker(QObject):
     #
     def message_callback(self, message):
 
-        # if end in keyword dict, then it's a no newline
+        # relay/post message to the GUI's console - sent via a signal,
+        # which is thread safe.
         self.sig_message.emit(message)
 
     #------------------------------------------------------
@@ -190,6 +192,41 @@ class AUxUploadWorker(QObject):
                 artemis_svl.upload_firmware(job['file'], job['port'], job['baud'])
 
             return 0
+
+        elif job['type'] == 'bootloader':
+            # >> TODO - 
+            #    - Bring over the apollo3 firmware upload code
+            #    - dummy up the command line args for this ^^ command (sys.vars)
+            #    - Re-direct PRINT outout (like above) to the console
+            #    - capture "exit" exception - to handle exit() calls in apollo3 code
+            # 
+            # AND -> Move this and firmware job action to seperate "action classes"
+            #      that make this generic
+            # fake command line args - since the apollo3 bootloader command will use
+            # argparse 
+            sys.argv = [resource_path('ambiq_bit2board.py'), \
+                    "--bin", resource_path('artimis_svl.bin'), \
+                    "-port", job['port'], \
+                    "-b", job['baud'] ]    
+                    ## Need to finish
+            status = 1 
+            # Use an IO class to redirect the output of Print() to our
+            # console  during this call
+            ioShim = AUxIOWedge(self.message_callback)
+            with redirect_stdout(ioShim):
+                # catch any call to exit() in the apollo3 bootloader command
+                try:
+                    # Call the ambiq command
+                    ambiq_bin2board.main()
+                    status = 0 
+                except SystemExit as  error:
+                    # something went wrong in the command. Command print()
+                    # messaging should of indicated what error occured. 
+                    # set status to 1
+                    status = 1 
+
+                artemis_svl.upload_firmware(job['file'], job['port'], job['baud'])
+            return status
         else:
             self.message_callback("Unknown job type. Aborting\n")
             return 1
