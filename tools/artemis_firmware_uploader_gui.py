@@ -215,7 +215,8 @@ class AUxUploadWorker(QObject):
             sys.argv = [resource_path('./asb/asb.py'), \
                     "--bin", job['file'], \
                     "-port", job['port'], \
-                    "-b", str(job['baud']) ]    
+                    "-b", str(job['baud']), \
+                    "-clean", "1" ]
                     ## Need to finish
             status = 1 
             # Use an IO class to redirect the output of Print() to our
