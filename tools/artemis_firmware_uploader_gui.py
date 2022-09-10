@@ -103,21 +103,23 @@ def resource_path(relative_path):
 
 
 from io import TextIOWrapper, BytesIO
-from contextlib import redirect_stdout
+from contextlib import redirect_stdout, redirect_stderr
 
 class AUxIOWedge(TextIOWrapper):
-    def __init__(self, output_funct, newline="\n"):
+    def __init__(self, output_funct, supress=False, newline="\n"):
         super(AUxIOWedge, self).__init__(BytesIO(),
                                         encoding="utf-8",
                                         errors="surrogatepass",
                                         newline=newline)
 
         self._output_func = output_funct
+        self._supress = supress
 
     def write(self, buffer):
 
         # Just send buffer to our output console
-        self._output_func(buffer)
+        if not self._supress:
+            self._output_func(buffer)
 
         return len(buffer)
 
@@ -128,6 +130,9 @@ class AUxIOWedge(TextIOWrapper):
 import artemis_svl
 import queue
 
+# Import the asb
+
+import asb 
 # determine the current GUI style (TODO: Is there another way to do this?)
 import darkdetect
 import platform
@@ -135,6 +140,8 @@ import platform
 # Note: Not using QThread, but just standard python threading. QThread caused
 # memory corruption issues on some platforms.
 from threading import Thread
+
+
 
 #--------------------------------------------------------------------------------------
 # Move upload to a thread, jobs passed in via a queue
@@ -187,9 +194,10 @@ class AUxUploadWorker(QObject):
 
             # Use an IO class to redirect the output of Print() to our
             # console  during this call
-            ioShim = AUxIOWedge(self.message_callback)
-            with redirect_stdout(ioShim):
-                artemis_svl.upload_firmware(job['file'], job['port'], job['baud'])
+
+            with redirect_stdout(AUxIOWedge(self.message_callback)):
+                with redirect_stderr(AUxIOWedge(self.message_callback, supress=True)):
+                    artemis_svl.upload_firmware(job['file'], job['port'], job['baud'])
 
             return 0
 
@@ -204,28 +212,27 @@ class AUxUploadWorker(QObject):
             #      that make this generic
             # fake command line args - since the apollo3 bootloader command will use
             # argparse 
-            sys.argv = [resource_path('ambiq_bit2board.py'), \
-                    "--bin", resource_path('artimis_svl.bin'), \
+            sys.argv = [resource_path('./asb/asb.py'), \
+                    "--bin", job['file'], \
                     "-port", job['port'], \
-                    "-b", job['baud'] ]    
+                    "-b", str(job['baud']) ]    
                     ## Need to finish
             status = 1 
             # Use an IO class to redirect the output of Print() to our
             # console  during this call
-            ioShim = AUxIOWedge(self.message_callback)
-            with redirect_stdout(ioShim):
-                # catch any call to exit() in the apollo3 bootloader command
-                try:
-                    # Call the ambiq command
-                    ambiq_bin2board.main()
-                    status = 0 
-                except SystemExit as  error:
-                    # something went wrong in the command. Command print()
-                    # messaging should of indicated what error occured. 
-                    # set status to 1
-                    status = 1 
+            with redirect_stdout(AUxIOWedge(self.message_callback)):
+                with redirect_stderr(AUxIOWedge(self.message_callback, supress=True)):
+                    # catch any call to exit() in the apollo3 bootloader command
+                    try:
+                        # Call the ambiq command
+                        asb.main()
+                        status = 0 
+                    except SystemExit as  error:
+                        print("Error executing bootloader upload command.")
 
-                artemis_svl.upload_firmware(job['file'], job['port'], job['baud'])
+                        status = 1 
+
+               
             return status
         else:
             self.message_callback("Unknown job type. Aborting\n")
@@ -811,9 +818,18 @@ class MainWindow(QMainWindow):
                 return
             f.close()
 
-        self.addMessage("\nUpdating bootloader")
+        self.addMessage("\nUpdating bootloader\n")
 
-        self.update_main() # Call ambiq_bin2board.py (previously this spawned a QProcess)
+        # send a line break across the console - start of a new activity
+        self.addMessage(('_'*70)+'\n')
+
+        # Make up a job and add it to the job queue. The worker thread will pick this up and
+        # process the job
+        theJob = { "type": "bootloader", "port":self.port, "baud": self.baudRate, "file":self.appFile}
+        self._queue.put(theJob)
+
+        self.disable_interface(True)
+        #self.update_main() # Call ambiq_bin2board.py (previously this spawned a QProcess)
 
     def on_browse_btn_pressed(self) -> None:
         """Open dialog to select bin file."""
