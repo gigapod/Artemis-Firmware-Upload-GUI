@@ -142,8 +142,66 @@ import tempfile
 # memory corruption issues on some platforms.
 from threading import Thread
 
-import ax_actions
+from ax_actions import AxAction, AxJob
 
+#--------------------------------------------------------------------------------------
+# action testing
+class AxArtemisUploadFirware(AxAction):
+
+    ACTION_ID = "artemis-upload-firmware"
+
+    def __init__(self) -> None:
+        super().__init__(self.ACTION_ID)
+
+    def run_job(self, job:AxJob):
+
+        try:
+            artemis_svl.upload_firmware(job.file, job.port, job.baud)
+
+        except Exception:
+            return 1
+
+        return 0
+
+#--------------------------------------------------------------------------------------
+class AxArtemisBrunBootloader(AxAction):
+
+    ACTION_ID = "artemis-burn-bootloader"
+
+    def __init__(self) -> None:
+        super().__init__(self.ACTION_ID)
+
+    def run_job(self, job:AxJob):
+        # fake command line args - since the apollo3 bootloader command will use
+        # argparse 
+        sys.argv = [resource_path('./asb/asb.py'), \
+                    "--bin", job.file, \
+                    "-port", job.port, \
+                    "-b", str(job.baud), \
+                    "-o", tempfile.gettempdir(), \
+                    "--load-address-blob", "0x20000", \
+                    "--magic-num", "0xCB", \
+                    "--version", "0x0", \
+                    "--load-address-wired", "0xC000", \
+                    "-i", "6", \
+                    "-clean", "1" ]
+
+        status = 1 
+        # Use an IO class to redirect the output of Print() to our
+        # console  during this call
+           
+        # catch any call to exit() in the apollo3 bootloader command
+        try:
+            # Call the ambiq command
+            asb.main()
+            status = 0 
+        except SystemExit as  error:
+            print("Error executing bootloader upload command.")
+
+            status = 1 
+        
+
+        return status      
 #--------------------------------------------------------------------------------------
 # Move upload to a thread, jobs passed in via a queue
 
@@ -151,7 +209,7 @@ import ax_actions
 
 class AUxUploadWorker(QObject):
 
-    # define signals to communicate with the GUI
+    # define signals to communicate with the GUI in a thread safe way
 
     sig_message     = pyqtSignal(str)
     sig_finished    = pyqtSignal(int)
@@ -164,6 +222,10 @@ class AUxUploadWorker(QObject):
 
         self._shutdown = False;
 
+        # stash of registered actions
+        self._actions = {}
+
+    # Maek sure the thread stops running in Destructor. And add shutdown user method
     def __del__(self):
 
         self._shutdown = True
@@ -173,6 +235,15 @@ class AUxUploadWorker(QObject):
         self._shutdown = True
 
     #------------------------------------------------------
+
+    def add_action(self, *argv) -> None:
+
+        for action in argv:
+            if not isinstance(action, AxAction):
+                print("Parameter is not of type AxAction" + str(type(action)))
+                continue 
+            self._actions[action.action_id] = action
+    #------------------------------------------------------    
     # call back function for output from the bootloader - called from our IO wedge class.
     #
     def message_callback(self, message):
@@ -183,66 +254,29 @@ class AUxUploadWorker(QObject):
 
     #------------------------------------------------------
     # Job dispatcher. Job is a dict.
+    # 
+    # retval  0 = OKAY
+
     def dispatch_job(self, job):
 
         # make sure we have a job
-        if type(job) != ax_actions.AxJob:
+        if not isinstance(job, AxJob):
             self.message_callback("ERROR - invalid job dispatched\n")
             return 1
 
-        # Check job type, run desired command
-        if job.action_id == 'firmware':
-
-            # Use an IO class to redirect the output of Print() to our
-            # console  during this call
-
-            with redirect_stdout(AUxIOWedge(self.message_callback)):
-                with redirect_stderr(AUxIOWedge(self.message_callback, supress=True)):
-                    artemis_svl.upload_firmware(job.file, job.port, job.baud)
-
-            return 0
-
-        elif job.action_id == 'bootloader':
-            # >> TODO - 
-            # AND -> Move this and firmware job action to seperate "action classes"
-            #      that make this generic
-            #
-            # fake command line args - since the apollo3 bootloader command will use
-            # argparse 
-            sys.argv = [resource_path('./asb/asb.py'), \
-                    "--bin", job.file, \
-                    "-port", job.port, \
-                    "-b", str(job.baud), \
-                    "-o", tempfile.gettempdir(), \
-                    "--load-address-blob", "0x20000", \
-                    "--magic-num", "0xCB", \
-                    "--version", "0x0", \
-                    "--load-address-wired", "0xC000", \
-                    "-i", "6", \
-                    "-clean", "1" ]
-
-            status = 1 
-            # Use an IO class to redirect the output of Print() to our
-            # console  during this call
-            with redirect_stdout(AUxIOWedge(self.message_callback)):
-                with redirect_stderr(AUxIOWedge(self.message_callback, supress=True)):
-                    # catch any call to exit() in the apollo3 bootloader command
-                    try:
-                        # Call the ambiq command
-                        asb.main()
-                        status = 0 
-                    except SystemExit as  error:
-                        print("Error executing bootloader upload command.")
-
-                        status = 1 
-
-               
-            return status
-        else:
+        # is the target action in our avaialble actions dictionary?
+        if job.action_id not in self._actions:
             self.message_callback("Unknown job type. Aborting\n")
             return 1
 
-        return 0
+        # capture stdio and stderr outputs
+        with redirect_stdout(AUxIOWedge(self.message_callback)):
+            with redirect_stderr(AUxIOWedge(self.message_callback, supress=True)):
+
+                # run the action
+                return self._actions[job.action_id].run_job(job)
+
+        return 1
 
     #------------------------------------------------------
     # The thread processing loop
@@ -481,6 +515,7 @@ class MainWindow(QMainWindow):
         self._thread.sig_message.connect(self.addMessage)
         self._thread.sig_finished.connect(self.on_finished)
 
+        self._thread.add_action(AxArtemisUploadFirware(), AxArtemisBrunBootloader())
         self._thread.start()
 
     #--------------------------------------------------------------
@@ -660,12 +695,16 @@ class MainWindow(QMainWindow):
         # send a line break across the console - start of a new activity
         self.addMessage('_'*70)
 
-        # Make up a job and add it to the job queue. The worker thread will pick this up and
-        # process the job
-        theJob = ax_actions.AxJob("firmware")
+        # Create a job and add it to the job queue. The worker thread will pick this up and
+        # process the job. 
+        # 
+        # Note - the job is defined with the ID of the target action
+        theJob = AxJob(AxArtemisUploadFirware.ACTION_ID)
         theJob.port = self.port
         theJob.baud = self.baudRate
         theJob.file = self.fileLocation_lineedit.text()
+
+        # add to the work queue - the background thread will process
         self._queue.put(theJob)
 
         self.disable_interface(True)
@@ -700,7 +739,7 @@ class MainWindow(QMainWindow):
 
         # Make up a job and add it to the job queue. The worker thread will pick this up and
         # process the job
-        theJob = ax_actions.AxJob("bootloader")
+        theJob = AxJob(AxArtemisBrunBootloader.ACTION_ID)
         theJob.port = self.port
         theJob.baud = self.baudRate
         theJob.file = self.appFile
