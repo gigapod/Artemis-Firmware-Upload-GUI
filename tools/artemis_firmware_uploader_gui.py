@@ -679,6 +679,17 @@ class MainWindow(QMainWindow):
             self.port_combobox.setCurrentIndex(indexOfCH340)
 
     #--------------------------------------------------------------
+    # Is a port still valid?
+
+    def verify_port(self, port) -> bool:
+
+        # Valid inputs - Check the port
+        for desc, name, sys in gen_serial_ports():
+            if sys == port:
+                return True
+
+        return False
+    #--------------------------------------------------------------
     def update_baud_rates(self) -> None:
         """Update baud rate list in GUI."""
         # Lowest speed first so code defaults to that
@@ -727,13 +738,7 @@ class MainWindow(QMainWindow):
     def on_upload_btn_pressed(self) -> None:
         
         # Valid inputs - Check the port
-        portAvailable = False
-        for desc, name, sys in gen_serial_ports():
-            if (sys == self.port):
-                portAvailable = True
-                break
-
-        if (portAvailable == False):
+        if not self.verify_port(self.port):
             self.log_message("Port No Longer Available")
             return
 
@@ -757,14 +762,9 @@ class MainWindow(QMainWindow):
     #--------------------------------------------------------------
     def on_update_bootloader_btn_pressed(self) -> None:
 
-        # port still available
-        portAvailable = False
-        for desc, name, sys in gen_serial_ports():
-            if (sys == self.port):
-                portAvailable = True
-                break
 
-        if (portAvailable == False):
+        # Valid inputs - Check the port
+        if not self.verify_port(self.port):
             self.log_message("Port No Longer Available")
             return
 
