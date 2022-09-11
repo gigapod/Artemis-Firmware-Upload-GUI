@@ -136,12 +136,13 @@ import asb
 # determine the current GUI style (TODO: Is there another way to do this?)
 import darkdetect
 import platform
+import tempfile
 
 # Note: Not using QThread, but just standard python threading. QThread caused
 # memory corruption issues on some platforms.
 from threading import Thread
 
-
+import ax_actions
 
 #--------------------------------------------------------------------------------------
 # Move upload to a thread, jobs passed in via a queue
@@ -185,39 +186,41 @@ class AUxUploadWorker(QObject):
     def dispatch_job(self, job):
 
         # make sure we have a job
-        if 'type' not in job:
+        if type(job) != ax_actions.AxJob:
             self.message_callback("ERROR - invalid job dispatched\n")
             return 1
 
         # Check job type, run desired command
-        if job['type'] == 'firmware':
+        if job.action_id == 'firmware':
 
             # Use an IO class to redirect the output of Print() to our
             # console  during this call
 
             with redirect_stdout(AUxIOWedge(self.message_callback)):
                 with redirect_stderr(AUxIOWedge(self.message_callback, supress=True)):
-                    artemis_svl.upload_firmware(job['file'], job['port'], job['baud'])
+                    artemis_svl.upload_firmware(job.file, job.port, job.baud)
 
             return 0
 
-        elif job['type'] == 'bootloader':
+        elif job.action_id == 'bootloader':
             # >> TODO - 
-            #    - Bring over the apollo3 firmware upload code
-            #    - dummy up the command line args for this ^^ command (sys.vars)
-            #    - Re-direct PRINT outout (like above) to the console
-            #    - capture "exit" exception - to handle exit() calls in apollo3 code
-            # 
             # AND -> Move this and firmware job action to seperate "action classes"
             #      that make this generic
+            #
             # fake command line args - since the apollo3 bootloader command will use
             # argparse 
             sys.argv = [resource_path('./asb/asb.py'), \
-                    "--bin", job['file'], \
-                    "-port", job['port'], \
-                    "-b", str(job['baud']), \
+                    "--bin", job.file, \
+                    "-port", job.port, \
+                    "-b", str(job.baud), \
+                    "-o", tempfile.gettempdir(), \
+                    "--load-address-blob", "0x20000", \
+                    "--magic-num", "0xCB", \
+                    "--version", "0x0", \
+                    "--load-address-wired", "0xC000", \
+                    "-i", "6", \
                     "-clean", "1" ]
-                    ## Need to finish
+
             status = 1 
             # Use an IO class to redirect the output of Print() to our
             # console  during this call
@@ -659,7 +662,10 @@ class MainWindow(QMainWindow):
 
         # Make up a job and add it to the job queue. The worker thread will pick this up and
         # process the job
-        theJob = { "type": "firmware", "port":self.port, "baud": self.baudRate, "file":self.fileLocation_lineedit.text()}
+        theJob = ax_actions.AxJob("firmware")
+        theJob.port = self.port
+        theJob.baud = self.baudRate
+        theJob.file = self.fileLocation_lineedit.text()
         self._queue.put(theJob)
 
         self.disable_interface(True)
@@ -694,7 +700,10 @@ class MainWindow(QMainWindow):
 
         # Make up a job and add it to the job queue. The worker thread will pick this up and
         # process the job
-        theJob = { "type": "bootloader", "port":self.port, "baud": self.baudRate, "file":self.appFile}
+        theJob = ax_actions.AxJob("bootloader")
+        theJob.port = self.port
+        theJob.baud = self.baudRate
+        theJob.file = self.appFile
         self._queue.put(theJob)
 
         self.disable_interface(True)
