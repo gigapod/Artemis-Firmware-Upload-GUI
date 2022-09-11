@@ -164,6 +164,8 @@ class AxArtemisUploadFirware(AxAction):
         return 0
 
 #--------------------------------------------------------------------------------------
+# 
+# Artemis Boot loader burn action
 class AxArtemisBrunBootloader(AxAction):
 
     ACTION_ID = "artemis-burn-bootloader"
@@ -376,12 +378,6 @@ class MainWindow(QMainWindow):
         self.installed_bootloader = -1 # Use this to record the bootloader version
 
         # ///// START of code taken from ambiq_bin2board.py
-
-        # Global Variables
-        self.loadTries = 0 #If we fail, try again. Tracks the number of tries we've attempted
-        self.loadSuccess = False
-        self.blob2wiredfile = ''
-        self.uploadbinfile = ''
 
         #
         self.appFile = 'artemis_svl.bin'    # --bin Bootloader binary file
