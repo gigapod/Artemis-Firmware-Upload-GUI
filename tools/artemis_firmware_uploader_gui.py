@@ -127,75 +127,22 @@ class AUxIOWedge(TextIOWrapper):
 #--------------------------------------------------------------------------------------
 # Worker/threads
 #
-import artemis_svl
 import queue
 
-# Import the asb
-
-import asb 
 # determine the current GUI style (TODO: Is there another way to do this?)
 import darkdetect
 import platform
-import tempfile
 
 # Note: Not using QThread, but just standard python threading. QThread caused
 # memory corruption issues on some platforms.
 from threading import Thread
 
-from ax_actions import AxAction, AxJob
+# import action things
+from au_action import AxAction, AxJob
 
-#--------------------------------------------------------------------------------------
-# action testing
-class AUxArtemisUploadFirware(AxAction):
+from au_act_artasb  import AUxArtemisBurnBootloader
+from au_act_artfrmw import AUxArtemisUploadFirware
 
-    ACTION_ID = "artemis-upload-firmware"
-    NAME = "Artemis Firmware Upload"
-
-    def __init__(self) -> None:
-        super().__init__(self.ACTION_ID, self.NAME)
-
-    def run_job(self, job:AxJob):
-
-        try:
-            artemis_svl.upload_firmware(job.file, job.port, job.baud)
-
-        except Exception:
-            return 1
-
-        return 0
-
-#--------------------------------------------------------------------------------------
-# 
-# Artemis Boot loader burn action
-class AUxArtemisBurnBootloader(AxAction):
-
-    ACTION_ID = "artemis-burn-bootloader"
-    NAME = "Artemis Bootloader Upload"
-
-    def __init__(self) -> None:
-        super().__init__(self.ACTION_ID, self.NAME)
-
-    def run_job(self, job:AxJob):
-
-        # fake command line args - since the apollo3 bootloader command will use
-        # argparse 
-        sys.argv = [resource_path('./asb/asb.py'), \
-                    "--bin", job.file, \
-                    "-port", job.port, \
-                    "-b", str(job.baud), \
-                    "-o", tempfile.gettempdir(), \
-                    "--load-address-blob", "0x20000", \
-                    "--magic-num", "0xCB", \
-                    "--version", "0x0", \
-                    "--load-address-wired", "0xC000", \
-                    "-i", "6", \
-                    "-clean", "1" ]
-
-        # Call the ambiq command
-        asb.main()
-
-
-        return 0
 #--------------------------------------------------------------------------------------
 # Move upload to a thread, jobs passed in via a queue
 
