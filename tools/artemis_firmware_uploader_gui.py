@@ -240,7 +240,7 @@ class AUxUploadWorker(QObject):
     #------------------------------------------------------    
     # call back function for output from the bootloader - called from our IO wedge class.
     #
-    def message_callback(self, message):
+    def message(self, message):
 
         # relay/post message to the GUI's console - sent via a signal,
         # which is thread safe.
@@ -255,34 +255,34 @@ class AUxUploadWorker(QObject):
 
         # make sure we have a job
         if not isinstance(job, AxJob):
-            self.message_callback("ERROR - invalid job dispatched\n")
+            self.message("ERROR - invalid job dispatched\n")
             return 1
 
         # is the target action in our avaialble actions dictionary?
         if job.action_id not in self._actions:
-            self.message_callback("Unknown job type. Aborting\n")
+            self.message("Unknown job type. Aborting\n")
             return 1
 
         # write out the job
         # send a line break across the console - start of a new activity
-        self.message_callback(('_'*70) + "\n")
+        self.message(('_'*70) + "\n")
         # Job details
-        self.message_callback(self._actions[job.action_id].name + "\n\n")
+        self.message(self._actions[job.action_id].name + "\n\n")
         for key in sorted(job.keys()):
-            self.message_callback(key.capitalize() + ":\t" + str(job[key]) + '\n')
+            self.message(key.capitalize() + ":\t" + str(job[key]) + '\n')
 
-        self.message_callback('\n')
+        self.message('\n')
 
         # capture stdio and stderr outputs
-        with redirect_stdout(AUxIOWedge(self.message_callback)):
-            with redirect_stderr(AUxIOWedge(self.message_callback, supress=True)):
+        with redirect_stdout(AUxIOWedge(self.message)):
+            with redirect_stderr(AUxIOWedge(self.message, supress=True)):
 
                 # catch any exit() calls the underlying system might make
                 try:
                     # run the action
                     return self._actions[job.action_id].run_job(job)
                 except SystemExit as  error:
-                    print("Error executing command - exit() was called.")
+                    self.message("Error executing command - exit() was called.")
 
         return 1
 
