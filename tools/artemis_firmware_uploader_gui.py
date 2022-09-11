@@ -284,7 +284,7 @@ class AUxUploadWorker(QObject):
     # The thread processing loop
     def process_loop(self):
 
-        # Wait on jobs .. forever
+        # Wait on jobs .. forever... Exit when shutdown is true
 
         self._shutdown = False
 
@@ -292,12 +292,13 @@ class AUxUploadWorker(QObject):
         while not self._shutdown:
 
             if self._queue.empty():
-                time.sleep(1)
+                time.sleep(1)  # no job, sleep a bit
             else:
                 job = self._queue.get()
 
                 status = self.dispatch_job(job)
 
+                # job is finished - let UX know
                 self.sig_finished.emit(status)
 
     #------------------------------------------------------
@@ -504,14 +505,25 @@ class MainWindow(QMainWindow):
         #---------------------------------------------------
         # KDB testing -
 
+        # create a standard python queue = the queue is used to communicate
+        # work to the background thread in a safe manner.  "Jobs" to do
+        # are passed to the background thread via this queue
         self._queue = queue.Queue()
 
+        # Create our background worker object, which also will do wonk in it's 
+        # own thread. 
         self._thread = AUxUploadWorker(self._queue)
 
+        # connect the signals from the background processor to callback 
+        # methods/slots. This makes it thread safe
         self._thread.sig_message.connect(self.addMessage)
         self._thread.sig_finished.connect(self.on_finished)
 
+        # add the actions/commands for this app to the background processing thread. 
+        # These actions are passed jobs to execute. 
         self._thread.add_action(AxArtemisUploadFirware(), AxArtemisBrunBootloader())
+
+        # start the background thread
         self._thread.start()
 
     #--------------------------------------------------------------
@@ -519,31 +531,54 @@ class MainWindow(QMainWindow):
     def addMessage(self, msg: str) -> None:
         """Add msg to the messages window, ensuring that it is visible"""
 
+        # The passed in text is inserted *raw* at the end of the console
+        # text area. The insert method doesn't add any newlines. Most of the
+        # text being recieved originates in a print() call, which adds newlines.
+
         self.messages.moveCursor(QTextCursor.End)
 
-        ## Backspace??
+        ## Backspace ("\b")?? 
         tmp = msg
         while len(tmp) > 2 and tmp.startswith('\b'):
+
+            # remove the "\b" from the input string, and delete the 
+            # previous character from the cursor in the text console
             tmp = tmp[1:]
             self.messages.textCursor().deletePreviousChar()
             self.messages.moveCursor(QTextCursor.End)
 
+        # insert the new text at the end of the console
         self.messages.insertPlainText(tmp)
 
+        # make sure cursor is at end of text and it's visible
         self.messages.moveCursor(QTextCursor.End)
         self.messages.ensureCursorVisible()
 
         self.repaint() # Update/refresh the message window
 
     #--------------------------------------------------------------
+    # on_finished()
+    #
+    #  Slot for sending the "on finished" signal from the background thread
+    # 
+    #  Called when the backgroudn job is finished and includes a status value
     @pyqtSlot(int)
     def on_finished(self, status) -> None:
 
+        # re-enable the UX 
         self.disable_interface(False)
+
+        # update the status message
         msg = "successfully" if status == 0 else "with an error"
         self.statusBar().showMessage("The upload process finished " + msg, 2000)        
 
     #--------------------------------------------------------------
+    # on_port_combobox()
+    #
+    # Called when the combobox pop-up menu is about to be shown
+    #
+    # Us this event to dynamically update the displayed ports
+    #
     @pyqtSlot()
     def on_port_combobox(self):
         self.statusBar().showMessage("Updating ports...", 500)
@@ -551,7 +586,7 @@ class MainWindow(QMainWindow):
 
 
     # end KDB
-    #----------------------------------------------------------
+    #---------------------------------------------------------------
 
     def _load_settings(self) -> None:
         """Load settings on startup."""
@@ -582,6 +617,7 @@ class MainWindow(QMainWindow):
                 self.artemis.setChecked(False)
                 self.apollo3.setChecked(True)
 
+    #--------------------------------------------------------------
     def _save_settings(self) -> None:
         """Save settings on shutdown."""
         settings = QSettings()
@@ -594,15 +630,18 @@ class MainWindow(QMainWindow):
             checkedStr = 'False'
         settings.setValue(SETTING_ARTEMIS, checkedStr)
 
+    #--------------------------------------------------------------
     def _clean_settings(self) -> None:
         """Clean (remove) all existing settings."""
         settings = QSettings()
         settings.clear()
 
+    #--------------------------------------------------------------
     def show_error_message(self, msg: str) -> None:
         """Show a Message Box with the error message."""
         QMessageBox.critical(self, QApplication.applicationName(), str(msg))
 
+    #--------------------------------------------------------------
     def update_com_ports(self) -> None:
         """Update COM Port list in GUI."""
         previousPort = self.port # Record the previous port before we clear the combobox
@@ -633,6 +672,7 @@ class MainWindow(QMainWindow):
         if indexOfCH340 > -1: # If we found a CH340, let that take priority
             self.port_combobox.setCurrentIndex(indexOfCH340)
 
+    #--------------------------------------------------------------
     def update_baud_rates(self) -> None:
         """Update baud rate list in GUI."""
         # Lowest speed first so code defaults to that
@@ -642,54 +682,69 @@ class MainWindow(QMainWindow):
         self.baud_combobox.addItem("460800", 460800)
         self.baud_combobox.addItem("921600", 921600)
 
+    #--------------------------------------------------------------
     @property
     def port(self) -> str:
         """Return the current serial port."""
         return self.port_combobox.currentData()
 
+    #--------------------------------------------------------------
     @property
     def baudRate(self) -> str:
         """Return the current baud rate."""
         return self.baud_combobox.currentData()
 
+    #--------------------------------------------------------------
     def closeEvent(self, event: QCloseEvent) -> None:
         """Handle Close event of the Widget."""
         self._save_settings()
 
+        # shutdown the background thread/stop it so the app exits correctly
         self._thread.shutdown()
 
         event.accept()
 
+    #--------------------------------------------------------------
+    # disable_interface()
+    #
+    # Enable/Disable portions of the ux - often used when a job is running
+    #
     def disable_interface(self, bDisable=False):
 
         self.upload_btn.setDisabled(bDisable)
         self.updateBootloader_btn.setDisabled(bDisable)
 
+    #--------------------------------------------------------------
+    # on_uplaod_btn_pressed()
+    #
+
     def on_upload_btn_pressed(self) -> None:
-        """Check if port is available"""
+        
+        # Valid inputs - Check the port
         portAvailable = False
         for desc, name, sys in gen_serial_ports():
             if (sys == self.port):
                 portAvailable = True
+                break
+
         if (portAvailable == False):
             self.addMessage("Port No Longer Available")
             return
 
-        """Check if file exists"""
-        fileExists = False
-        try:
-            f = open(self.fileLocation_lineedit.text())
-            fileExists = True
-        except IOError:
-            fileExists = False
-        finally:
-            if (fileExists == False):
-                self.addMessage("File Not Found")
-                return
-            f.close()
-
+        # Does the upload file exist?
+        fmwFile = self.fileLocation_lineedit.text()
+        if not os.path.exists(fmwFile):
+            self.addMessage("The firmware file was not found: " + fmwFile)
+            return
+        
         # send a line break across the console - start of a new activity
-        self.addMessage('_'*70)
+        self.addMessage(('_'*70) + "\n")
+
+        # Job details
+        self.addMessage("Uploading Firmware\n\n")
+        self.addMessage("File:\t" + fmwFile + '\n')
+        self.addMessage("Port:\t" + self.port + '\n')
+        self.addMessage("Baud:\t" + str(self.baudRate) + '\n\n')
 
         # Create a job and add it to the job queue. The worker thread will pick this up and
         # process the job. 
@@ -698,52 +753,54 @@ class MainWindow(QMainWindow):
         theJob = AxJob(AxArtemisUploadFirware.ACTION_ID)
         theJob.port = self.port
         theJob.baud = self.baudRate
-        theJob.file = self.fileLocation_lineedit.text()
+        theJob.file = fmwFile
 
         # add to the work queue - the background thread will process
         self._queue.put(theJob)
 
         self.disable_interface(True)
 
+    #--------------------------------------------------------------
     def on_update_bootloader_btn_pressed(self) -> None:
-        """Check if port is available"""
+
+        # port still available
         portAvailable = False
         for desc, name, sys in gen_serial_ports():
             if (sys == self.port):
                 portAvailable = True
+                break
+
         if (portAvailable == False):
             self.addMessage("Port No Longer Available")
             return
 
-        """Check if file exists"""
-        fileExists = False
-        try:
-            f = open(resource_path(self.appFile))
-            fileExists = True
-        except IOError:
-            fileExists = False
-        finally:
-            if (fileExists == False):
-                self.addMessage("Bootloader file Not Found")
-                return
-            f.close()
-
-        self.addMessage("\nUpdating bootloader\n")
+        # Does the bootloader file exist?
+        blFile = resource_path(self.appFile)
+        if not os.path.exists(blFile):
+            self.addMessage("The bootloader file was not found: " + blFile)
+            return
 
         # send a line break across the console - start of a new activity
-        self.addMessage(('_'*70)+'\n')
+        self.addMessage(('_'*70) + "\n")
+
+        # Job details
+        self.addMessage("Updating Bootloader\n\n")
+        self.addMessage("File:\t" + blFile + '\n')
+        self.addMessage("Port:\t" + self.port + '\n')
+        self.addMessage("Baud:\t" + str(self.baudRate) + '\n\n')
 
         # Make up a job and add it to the job queue. The worker thread will pick this up and
         # process the job
         theJob = AxJob(AxArtemisBrunBootloader.ACTION_ID)
         theJob.port = self.port
         theJob.baud = self.baudRate
-        theJob.file = self.appFile
+        theJob.file = blFile
         self._queue.put(theJob)
 
         self.disable_interface(True)
         #self.update_main() # Call ambiq_bin2board.py (previously this spawned a QProcess)
 
+    #--------------------------------------------------------------
     def on_browse_btn_pressed(self) -> None:
         """Open dialog to select bin file."""
 
