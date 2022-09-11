@@ -516,7 +516,7 @@ class MainWindow(QMainWindow):
 
         # connect the signals from the background processor to callback 
         # methods/slots. This makes it thread safe
-        self._thread.sig_message.connect(self.addMessage)
+        self._thread.sig_message.connect(self.log_message)
         self._thread.sig_finished.connect(self.on_finished)
 
         # add the actions/commands for this app to the background processing thread. 
@@ -528,7 +528,7 @@ class MainWindow(QMainWindow):
 
     #--------------------------------------------------------------
     @pyqtSlot(str)
-    def addMessage(self, msg: str) -> None:
+    def log_message(self, msg: str) -> None:
         """Add msg to the messages window, ensuring that it is visible"""
 
         # The passed in text is inserted *raw* at the end of the console
@@ -661,7 +661,7 @@ class MainWindow(QMainWindow):
                 if (indexOfCH340 == -1):
                     indexOfCH340 = index
                     # it could be too early to call
-                    #self.addMessage("CH340 found at index " + str(indexOfCH340))
+                    #self.log_message("CH340 found at index " + str(indexOfCH340))
                     # as the GUI might not exist yet
             if(sys == previousPort): # Previous port still exists so record it
                 indexOfPrevious = index
@@ -728,23 +728,23 @@ class MainWindow(QMainWindow):
                 break
 
         if (portAvailable == False):
-            self.addMessage("Port No Longer Available")
+            self.log_message("Port No Longer Available")
             return
 
         # Does the upload file exist?
         fmwFile = self.fileLocation_lineedit.text()
         if not os.path.exists(fmwFile):
-            self.addMessage("The firmware file was not found: " + fmwFile)
+            self.log_message("The firmware file was not found: " + fmwFile)
             return
         
         # send a line break across the console - start of a new activity
-        self.addMessage(('_'*70) + "\n")
+        self.log_message(('_'*70) + "\n")
 
         # Job details
-        self.addMessage("Uploading Firmware\n\n")
-        self.addMessage("File:\t" + fmwFile + '\n')
-        self.addMessage("Port:\t" + self.port + '\n')
-        self.addMessage("Baud:\t" + str(self.baudRate) + '\n\n')
+        self.log_message("Uploading Firmware\n\n")
+        self.log_message("File:\t" + fmwFile + '\n')
+        self.log_message("Port:\t" + self.port + '\n')
+        self.log_message("Baud:\t" + str(self.baudRate) + '\n\n')
 
         # Create a job and add it to the job queue. The worker thread will pick this up and
         # process the job. 
@@ -771,23 +771,23 @@ class MainWindow(QMainWindow):
                 break
 
         if (portAvailable == False):
-            self.addMessage("Port No Longer Available")
+            self.log_message("Port No Longer Available")
             return
 
         # Does the bootloader file exist?
         blFile = resource_path(self.appFile)
         if not os.path.exists(blFile):
-            self.addMessage("The bootloader file was not found: " + blFile)
+            self.log_message("The bootloader file was not found: " + blFile)
             return
 
         # send a line break across the console - start of a new activity
-        self.addMessage(('_'*70) + "\n")
+        self.log_message(('_'*70) + "\n")
 
         # Job details
-        self.addMessage("Updating Bootloader\n\n")
-        self.addMessage("File:\t" + blFile + '\n')
-        self.addMessage("Port:\t" + self.port + '\n')
-        self.addMessage("Baud:\t" + str(self.baudRate) + '\n\n')
+        self.log_message("Updating Bootloader\n\n")
+        self.log_message("File:\t" + blFile + '\n')
+        self.log_message("Port:\t" + self.port + '\n')
+        self.log_message("Baud:\t" + str(self.baudRate) + '\n\n')
 
         # Make up a job and add it to the job queue. The worker thread will pick this up and
         # process the job
