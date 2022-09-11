@@ -376,9 +376,6 @@ def upload_firmware(binfile, port, baud, timeout=0.5):
 
                 # Perform baud rate negotiation
                 entered_bootloader = phase_setup(ser)
-                print("Uploading:\t" + binfile)
-                print("Port:\t" + port)
-                print("Baud Rate:\t"+str(baud)+'\n')
 
                 if(entered_bootloader == True):
                     bl_success = phase_bootload(ser, binfile)
