@@ -146,7 +146,7 @@ from ax_actions import AxAction, AxJob
 
 #--------------------------------------------------------------------------------------
 # action testing
-class AxArtemisUploadFirware(AxAction):
+class AUxArtemisUploadFirware(AxAction):
 
     ACTION_ID = "artemis-upload-firmware"
     NAME = "Artemis Firmware Upload"
@@ -167,7 +167,7 @@ class AxArtemisUploadFirware(AxAction):
 #--------------------------------------------------------------------------------------
 # 
 # Artemis Boot loader burn action
-class AxArtemisBurnBootloader(AxAction):
+class AUxArtemisBurnBootloader(AxAction):
 
     ACTION_ID = "artemis-burn-bootloader"
     NAME = "Artemis Bootloader Upload"
@@ -527,7 +527,7 @@ class MainWindow(QMainWindow):
 
         # add the actions/commands for this app to the background processing thread. 
         # These actions are passed jobs to execute. 
-        self._thread.add_action(AxArtemisUploadFirware(), AxArtemisBurnBootloader())
+        self._thread.add_action(AUxArtemisUploadFirware(), AUxArtemisBurnBootloader())
 
         # start the background thread
         self._thread.start()
@@ -752,7 +752,7 @@ class MainWindow(QMainWindow):
         # process the job. Can set job values using dictionary syntax, or attribut assignments
         # 
         # Note - the job is defined with the ID of the target action
-        theJob = AxJob(AxArtemisUploadFirware.ACTION_ID, {"port":self.port, "baud":self.baudRate, "file":fmwFile})
+        theJob = AxJob(AUxArtemisUploadFirware.ACTION_ID, {"port":self.port, "baud":self.baudRate, "file":fmwFile})
 
         # add to the work queue - the background thread will process
         self._queue.put(theJob)
@@ -776,12 +776,11 @@ class MainWindow(QMainWindow):
 
         # Make up a job and add it to the job queue. The worker thread will pick this up and
         # process the job. Can set job values using dictionary syntax, or attribut assignments
-        theJob = AxJob(AxArtemisBurnBootloader.ACTION_ID,  {"port":self.port, "baud":self.baudRate, "file":blFile})
+        theJob = AxJob(AUxArtemisBurnBootloader.ACTION_ID,  {"port":self.port, "baud":self.baudRate, "file":blFile})
 
         self._queue.put(theJob)
 
         self.disable_interface(True)
-        #self.update_main() # Call ambiq_bin2board.py (previously this spawned a QProcess)
 
     #--------------------------------------------------------------
     def on_browse_btn_pressed(self) -> None:
