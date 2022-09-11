@@ -149,9 +149,10 @@ from ax_actions import AxAction, AxJob
 class AxArtemisUploadFirware(AxAction):
 
     ACTION_ID = "artemis-upload-firmware"
+    NAME = "Artemis Firmware Upload"
 
     def __init__(self) -> None:
-        super().__init__(self.ACTION_ID)
+        super().__init__(self.ACTION_ID, self.NAME)
 
     def run_job(self, job:AxJob):
 
@@ -166,14 +167,16 @@ class AxArtemisUploadFirware(AxAction):
 #--------------------------------------------------------------------------------------
 # 
 # Artemis Boot loader burn action
-class AxArtemisBrunBootloader(AxAction):
+class AxArtemisBurnBootloader(AxAction):
 
     ACTION_ID = "artemis-burn-bootloader"
+    NAME = "Artemis Bootloader Upload"
 
     def __init__(self) -> None:
-        super().__init__(self.ACTION_ID)
+        super().__init__(self.ACTION_ID, self.NAME)
 
     def run_job(self, job:AxJob):
+
         # fake command line args - since the apollo3 bootloader command will use
         # argparse 
         sys.argv = [resource_path('./asb/asb.py'), \
@@ -188,22 +191,11 @@ class AxArtemisBrunBootloader(AxAction):
                     "-i", "6", \
                     "-clean", "1" ]
 
-        status = 1 
-        # Use an IO class to redirect the output of Print() to our
-        # console  during this call
-           
-        # catch any call to exit() in the apollo3 bootloader command
-        try:
-            # Call the ambiq command
-            asb.main()
-            status = 0 
-        except SystemExit as  error:
-            print("Error executing bootloader upload command.")
+        # Call the ambiq command
+        asb.main()
 
-            status = 1 
-        
 
-        return status      
+        return 0
 #--------------------------------------------------------------------------------------
 # Move upload to a thread, jobs passed in via a queue
 
@@ -271,12 +263,26 @@ class AUxUploadWorker(QObject):
             self.message_callback("Unknown job type. Aborting\n")
             return 1
 
+        # write out the job
+        # send a line break across the console - start of a new activity
+        self.message_callback(('_'*70) + "\n")
+        # Job details
+        self.message_callback(self._actions[job.action_id].name + "\n\n")
+        for key in sorted(job.keys()):
+            self.message_callback(key.capitalize() + ":\t" + str(job[key]) + '\n')
+
+        self.message_callback('\n')
+
         # capture stdio and stderr outputs
         with redirect_stdout(AUxIOWedge(self.message_callback)):
             with redirect_stderr(AUxIOWedge(self.message_callback, supress=True)):
 
-                # run the action
-                return self._actions[job.action_id].run_job(job)
+                # catch any exit() calls the underlying system might make
+                try:
+                    # run the action
+                    return self._actions[job.action_id].run_job(job)
+                except SystemExit as  error:
+                    print("Error executing command - exit() was called.")
 
         return 1
 
@@ -521,7 +527,7 @@ class MainWindow(QMainWindow):
 
         # add the actions/commands for this app to the background processing thread. 
         # These actions are passed jobs to execute. 
-        self._thread.add_action(AxArtemisUploadFirware(), AxArtemisBrunBootloader())
+        self._thread.add_action(AxArtemisUploadFirware(), AxArtemisBurnBootloader())
 
         # start the background thread
         self._thread.start()
@@ -737,23 +743,11 @@ class MainWindow(QMainWindow):
             self.log_message("The firmware file was not found: " + fmwFile)
             return
         
-        # send a line break across the console - start of a new activity
-        self.log_message(('_'*70) + "\n")
-
-        # Job details
-        self.log_message("Uploading Firmware\n\n")
-        self.log_message("File:\t" + fmwFile + '\n')
-        self.log_message("Port:\t" + self.port + '\n')
-        self.log_message("Baud:\t" + str(self.baudRate) + '\n\n')
-
         # Create a job and add it to the job queue. The worker thread will pick this up and
-        # process the job. 
+        # process the job. Can set job values using dictionary syntax, or attribut assignments
         # 
         # Note - the job is defined with the ID of the target action
-        theJob = AxJob(AxArtemisUploadFirware.ACTION_ID)
-        theJob.port = self.port
-        theJob.baud = self.baudRate
-        theJob.file = fmwFile
+        theJob = AxJob(AxArtemisUploadFirware.ACTION_ID, {"port":self.port, "baud":self.baudRate, "file":fmwFile})
 
         # add to the work queue - the background thread will process
         self._queue.put(theJob)
@@ -780,21 +774,10 @@ class MainWindow(QMainWindow):
             self.log_message("The bootloader file was not found: " + blFile)
             return
 
-        # send a line break across the console - start of a new activity
-        self.log_message(('_'*70) + "\n")
-
-        # Job details
-        self.log_message("Updating Bootloader\n\n")
-        self.log_message("File:\t" + blFile + '\n')
-        self.log_message("Port:\t" + self.port + '\n')
-        self.log_message("Baud:\t" + str(self.baudRate) + '\n\n')
-
         # Make up a job and add it to the job queue. The worker thread will pick this up and
-        # process the job
-        theJob = AxJob(AxArtemisBrunBootloader.ACTION_ID)
-        theJob.port = self.port
-        theJob.baud = self.baudRate
-        theJob.file = blFile
+        # process the job. Can set job values using dictionary syntax, or attribut assignments
+        theJob = AxJob(AxArtemisBurnBootloader.ACTION_ID,  {"port":self.port, "baud":self.baudRate, "file":blFile})
+
         self._queue.put(theJob)
 
         self.disable_interface(True)

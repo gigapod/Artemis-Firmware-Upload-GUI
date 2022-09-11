@@ -45,9 +45,10 @@ class AxJob(dict):
 # Base action class - defines method
 class AxAction(object):
 
-	def __init__(self, action_id:str) -> None:
+	def __init__(self, action_id:str, name="") -> None:
 		object.__init__(self)
 		self.action_id = action_id
+		self.name = name
 
 	def run_job(self, job:AxJob) -> int:
 		return 1 # error
