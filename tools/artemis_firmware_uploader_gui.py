@@ -95,47 +95,10 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 #--------------------------------------------------------------------------------------
-#--------------------------------------------------------------------------------------
-# AUxIOWedge
-#
-# Used to redirect/capture output chars from the print() function and redirect to our
-# console. Allows the use of command line routines in this GUI app
-
-
-from io import TextIOWrapper, BytesIO
-from contextlib import redirect_stdout, redirect_stderr
-
-class AUxIOWedge(TextIOWrapper):
-    def __init__(self, output_funct, supress=False, newline="\n"):
-        super(AUxIOWedge, self).__init__(BytesIO(),
-                                        encoding="utf-8",
-                                        errors="surrogatepass",
-                                        newline=newline)
-
-        self._output_func = output_funct
-        self._supress = supress
-
-    def write(self, buffer):
-
-        # Just send buffer to our output console
-        if not self._supress:
-            self._output_func(buffer)
-
-        return len(buffer)
-
-#--------------------------------------------------------------------------------------
-#--------------------------------------------------------------------------------------
-# Worker/threads
-#
-import queue
 
 # determine the current GUI style (TODO: Is there another way to do this?)
 import darkdetect
 import platform
-
-# Note: Not using QThread, but just standard python threading. QThread caused
-# memory corruption issues on some platforms.
-from threading import Thread
 
 # import action things
 from au_action import AxAction, AxJob
@@ -143,12 +106,17 @@ from au_action import AxAction, AxJob
 from au_act_artasb  import AUxArtemisBurnBootloader
 from au_act_artfrmw import AUxArtemisUploadFirware
 
-#--------------------------------------------------------------------------------------
-# Move upload to a thread, jobs passed in via a queue
 
-# define a worker class/thread
+from au_worker import AUxWorker
 
-class AUxUploadWorker(QObject):
+
+#----------------------------------------------------------------
+# Class based on Qt object that is used to relay callback messages
+# from the worker thread to the Qt GUI.
+#
+# Translaes the callback message to a set of signals
+
+class AUxWorkerCallback(QObject):
 
     # define signals to communicate with the GUI in a thread safe way
 
@@ -156,121 +124,14 @@ class AUxUploadWorker(QObject):
     sig_finished    = pyqtSignal(int)
 
     def __init__(self):
-
         QObject.__init__(self)
 
-        # create a standard python queue = the queue is used to communicate
-        # work to the background thread in a safe manner.  "Jobs" to do
-        # are passed to the background thread via this queue
-        self._queue = queue.Queue()
+    def on_callback(self, type, arg):
 
-        self._shutdown = False;
-
-        # stash of registered actions
-        self._actions = {}
-
-        # throw the work/job into a thread
-        self._thread = Thread(target = self.process_loop, args=(self._queue,))
-        self._thread.start()
-
-    # Maek sure the thread stops running in Destructor. And add shutdown user method
-    def __del__(self):
-
-        self._shutdown = True
-
-    def shutdown(self):
-
-        self._shutdown = True
-
-    #------------------------------------------------------
-
-    def add_action(self, *argv) -> None:
-
-        for action in argv:
-            if not isinstance(action, AxAction):
-                print("Parameter is not of type AxAction" + str(type(action)))
-                continue 
-            self._actions[action.action_id] = action
-
-
-    #------------------------------------------------------
-    # Add a job for execution by the background thread.
-    #
-    def add_job(self, theJob:AxJob)->None:
-
-        # just enque the job
-
-        self._queue.put(theJob)
-
-    #------------------------------------------------------    
-    # call back function for output from the bootloader - called from our IO wedge class.
-    #
-    def message(self, message):
-
-        # relay/post message to the GUI's console - sent via a signal,
-        # which is thread safe.
-        self.sig_message.emit(message)
-
-    #------------------------------------------------------
-    # Job dispatcher. Job is a dict.
-    # 
-    # retval  0 = OKAY
-
-    def dispatch_job(self, job):
-
-        # make sure we have a job
-        if not isinstance(job, AxJob):
-            self.message("ERROR - invalid job dispatched\n")
-            return 1
-
-        # is the target action in our avaialble actions dictionary?
-        if job.action_id not in self._actions:
-            self.message("Unknown job type. Aborting\n")
-            return 1
-
-        # write out the job
-        # send a line break across the console - start of a new activity
-        self.message(('_'*70) + "\n")
-        # Job details
-        self.message(self._actions[job.action_id].name + "\n\n")
-        for key in sorted(job.keys()):
-            self.message(key.capitalize() + ":\t" + str(job[key]) + '\n')
-
-        self.message('\n')
-
-        # capture stdio and stderr outputs
-        with redirect_stdout(AUxIOWedge(self.message)):
-            with redirect_stderr(AUxIOWedge(self.message, supress=True)):
-
-                # catch any exit() calls the underlying system might make
-                try:
-                    # run the action
-                    return self._actions[job.action_id].run_job(job)
-                except SystemExit as  error:
-                    self.message("Error executing command - exit() was called.")
-
-        return 1
-
-    #------------------------------------------------------
-    # The thread processing loop
-    def process_loop(self, inputQueue):
-
-        # Wait on jobs .. forever... Exit when shutdown is true
-
-        self._shutdown = False
-
-        # run
-        while not self._shutdown:
-
-            if inputQueue.empty():
-                time.sleep(1)  # no job, sleep a bit
-            else:
-                job = inputQueue.get()
-
-                status = self.dispatch_job(job)
-
-                # job is finished - let UX know
-                self.sig_finished.emit(status)
+        if type == AUxWorker.TYPE_MESSAGE:
+            self.sig_message.emit(arg)
+        elif type == AUxWorker.TYPE_FINISHED:
+            self.sig_finished.emit(arg)
 
 #----------------------------------------------------------------
 # hack to know when a combobox menu is being shown. Helpful if contents
@@ -468,15 +329,15 @@ class MainWindow(QMainWindow):
         #---------------------------------------------------
         # KDB testing -
 
+        self._relay = AUxWorkerCallback()
+        # connect the signals from the background processor to callback
+        # methods/slots. This makes it thread safe
+        self._relay.sig_message.connect(self.log_message)
+        self._relay.sig_finished.connect(self.on_finished)
 
         # Create our background worker object, which also will do wonk in it's 
         # own thread. 
-        self._worker = AUxUploadWorker()
-
-        # connect the signals from the background processor to callback 
-        # methods/slots. This makes it thread safe
-        self._worker.sig_message.connect(self.log_message)
-        self._worker.sig_finished.connect(self.on_finished)
+        self._worker = AUxWorker(self._relay.on_callback)
 
         # add the actions/commands for this app to the background processing thread. 
         # These actions are passed jobs to execute. 
