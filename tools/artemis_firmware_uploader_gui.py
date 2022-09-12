@@ -155,16 +155,23 @@ class AUxUploadWorker(QObject):
     sig_message     = pyqtSignal(str)
     sig_finished    = pyqtSignal(int)
 
-    def __init__(self, theQueue):
+    def __init__(self):
 
         QObject.__init__(self)
 
-        self._queue = theQueue
+        # create a standard python queue = the queue is used to communicate
+        # work to the background thread in a safe manner.  "Jobs" to do
+        # are passed to the background thread via this queue
+        self._queue = queue.Queue()
 
         self._shutdown = False;
 
         # stash of registered actions
         self._actions = {}
+
+        # throw the work/job into a thread
+        self._thread = Thread(target = self.process_loop, args=(self._queue,))
+        self._thread.start()
 
     # Maek sure the thread stops running in Destructor. And add shutdown user method
     def __del__(self):
@@ -184,6 +191,17 @@ class AUxUploadWorker(QObject):
                 print("Parameter is not of type AxAction" + str(type(action)))
                 continue 
             self._actions[action.action_id] = action
+
+
+    #------------------------------------------------------
+    # Add a job for execution by the background thread.
+    #
+    def add_job(self, theJob:AxJob)->None:
+
+        # just enque the job
+
+        self._queue.put(theJob)
+
     #------------------------------------------------------    
     # call back function for output from the bootloader - called from our IO wedge class.
     #
@@ -235,7 +253,7 @@ class AUxUploadWorker(QObject):
 
     #------------------------------------------------------
     # The thread processing loop
-    def process_loop(self):
+    def process_loop(self, inputQueue):
 
         # Wait on jobs .. forever... Exit when shutdown is true
 
@@ -244,23 +262,15 @@ class AUxUploadWorker(QObject):
         # run
         while not self._shutdown:
 
-            if self._queue.empty():
+            if inputQueue.empty():
                 time.sleep(1)  # no job, sleep a bit
             else:
-                job = self._queue.get()
+                job = inputQueue.get()
 
                 status = self.dispatch_job(job)
 
                 # job is finished - let UX know
                 self.sig_finished.emit(status)
-
-    #------------------------------------------------------
-    # Called to start job processing
-    def start(self):
-
-        # throw the work/job into a thread
-        self._th_process = Thread(target = self.process_loop)
-        self._th_process.start()
 
 #----------------------------------------------------------------
 # hack to know when a combobox menu is being shown. Helpful if contents
@@ -458,26 +468,19 @@ class MainWindow(QMainWindow):
         #---------------------------------------------------
         # KDB testing -
 
-        # create a standard python queue = the queue is used to communicate
-        # work to the background thread in a safe manner.  "Jobs" to do
-        # are passed to the background thread via this queue
-        self._queue = queue.Queue()
 
         # Create our background worker object, which also will do wonk in it's 
         # own thread. 
-        self._thread = AUxUploadWorker(self._queue)
+        self._worker = AUxUploadWorker()
 
         # connect the signals from the background processor to callback 
         # methods/slots. This makes it thread safe
-        self._thread.sig_message.connect(self.log_message)
-        self._thread.sig_finished.connect(self.on_finished)
+        self._worker.sig_message.connect(self.log_message)
+        self._worker.sig_finished.connect(self.on_finished)
 
         # add the actions/commands for this app to the background processing thread. 
         # These actions are passed jobs to execute. 
-        self._thread.add_action(AUxArtemisUploadFirware(), AUxArtemisBurnBootloader())
-
-        # start the background thread
-        self._thread.start()
+        self._worker.add_action(AUxArtemisUploadFirware(), AUxArtemisBurnBootloader())
 
     #--------------------------------------------------------------
     @pyqtSlot(str)
@@ -663,8 +666,8 @@ class MainWindow(QMainWindow):
         """Handle Close event of the Widget."""
         self._save_settings()
 
-        # shutdown the background thread/stop it so the app exits correctly
-        self._thread.shutdown()
+        # shutdown the background worker/stop it so the app exits correctly
+        self._worker.shutdown()
 
         event.accept()
 
@@ -702,7 +705,7 @@ class MainWindow(QMainWindow):
         theJob = AxJob(AUxArtemisUploadFirware.ACTION_ID, {"port":self.port, "baud":self.baudRate, "file":fmwFile})
 
         # add to the work queue - the background thread will process
-        self._queue.put(theJob)
+        self._worker.add_job(theJob)
 
         self.disable_interface(True)
 
@@ -725,7 +728,7 @@ class MainWindow(QMainWindow):
         # process the job. Can set job values using dictionary syntax, or attribut assignments
         theJob = AxJob(AUxArtemisBurnBootloader.ACTION_ID,  {"port":self.port, "baud":self.baudRate, "file":blFile})
 
-        self._queue.put(theJob)
+        self._worker.add_job(theJob)
 
         self.disable_interface(True)
 
