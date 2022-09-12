@@ -109,30 +109,6 @@ from au_act_artfrmw import AUxArtemisUploadFirware
 
 from au_worker import AUxWorker
 
-
-#----------------------------------------------------------------
-# Class based on Qt object that is used to relay callback messages
-# from the worker thread to the Qt GUI.
-#
-# Translaes the callback message to a set of signals
-
-class AUxWorkerCallback(QObject):
-
-    # define signals to communicate with the GUI in a thread safe way
-
-    sig_message     = pyqtSignal(str)
-    sig_finished    = pyqtSignal(int)
-
-    def __init__(self):
-        QObject.__init__(self)
-
-    def on_callback(self, type, arg):
-
-        if type == AUxWorker.TYPE_MESSAGE:
-            self.sig_message.emit(arg)
-        elif type == AUxWorker.TYPE_FINISHED:
-            self.sig_finished.emit(arg)
-
 #----------------------------------------------------------------
 # hack to know when a combobox menu is being shown. Helpful if contents
 # of list are dynamic -- like serial ports.
@@ -189,13 +165,14 @@ def gen_serial_ports() -> Iterator[Tuple[str, str, str]]:
     ports = QSerialPortInfo.availablePorts()
     return ((p.description(), p.portName(), p.systemLocation()) for p in ports)
 
-
-
 # noinspection PyArgumentList
 
 #---------------------------------------------------------------------------------------
 class MainWindow(QMainWindow):
     """Main Window"""
+
+    sig_message     = pyqtSignal(str)
+    sig_finished    = pyqtSignal(int)
 
     def __init__(self, parent: QMainWindow = None) -> None:
         super().__init__(parent)
@@ -325,23 +302,35 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(_APP_NAME + " - " + _APP_VERSION, 10000)
 
 
+        # setup our background worker thread ...
 
-        #---------------------------------------------------
-        # KDB testing -
-
-        self._relay = AUxWorkerCallback()
         # connect the signals from the background processor to callback
         # methods/slots. This makes it thread safe
-        self._relay.sig_message.connect(self.log_message)
-        self._relay.sig_finished.connect(self.on_finished)
+        self.sig_message.connect(self.log_message)
+        self.sig_finished.connect(self.on_finished)
 
         # Create our background worker object, which also will do wonk in it's 
         # own thread. 
-        self._worker = AUxWorker(self._relay.on_callback)
+        self._worker = AUxWorker(self.on_callback)
 
         # add the actions/commands for this app to the background processing thread. 
         # These actions are passed jobs to execute. 
         self._worker.add_action(AUxArtemisUploadFirware(), AUxArtemisBurnBootloader())
+
+
+    #--------------------------------------------------------------
+    # callback function for the background worker.
+    #
+    # It is assumed that this method is called by the background thread
+    # so signals and used to relay the call to the GUI running on the
+    # main thread
+
+    def on_callback(self, type, arg):
+
+        if type == AUxWorker.TYPE_MESSAGE:
+            self.sig_message.emit(arg)
+        elif type == AUxWorker.TYPE_FINISHED:
+            self.sig_finished.emit(arg)
 
     #--------------------------------------------------------------
     @pyqtSlot(str)
