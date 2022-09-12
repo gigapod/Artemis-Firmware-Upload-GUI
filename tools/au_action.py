@@ -7,6 +7,27 @@
 #
 # Sub-classes a dictionary (dict), and stores parameters in the dictionary. 
 # Parameters can also be accessed as attributes. 
+#
+# Example:
+#
+#  myJob = AxJob('my-job-id')
+#
+#  myJob['data'] = 1
+#
+#  print(myJob.data)
+#
+#  myJob.data=2
+#
+#  print(myJob['data'])
+#
+# And can init the job using dictionary syntax
+#
+#  myJob = AxJob('my-job-id', {"data":1, "sensor":"spectra1", "flight":33.3})
+#
+#  print(myJob.data)
+#  print(myJob.sensor)
+#  print(myJob.flight)
+#
 
 class AxJob(dict):
 
@@ -43,6 +64,9 @@ class AxJob(dict):
 
 #--------------------------------------------------------------------------
 # Base action class - defines method
+#
+# Sub-class this class to create a action
+
 class AxAction(object):
 
 	def __init__(self, action_id:str, name="") -> None:

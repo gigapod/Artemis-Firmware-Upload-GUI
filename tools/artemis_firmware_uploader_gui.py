@@ -383,7 +383,7 @@ class MainWindow(QMainWindow):
     #
     # Called when the combobox pop-up menu is about to be shown
     #
-    # Us this event to dynamically update the displayed ports
+    # Use this event to dynamically update the displayed ports
     #
     @pyqtSlot()
     def on_port_combobox(self):
@@ -391,7 +391,6 @@ class MainWindow(QMainWindow):
         self.update_com_ports()
 
 
-    # end KDB
     #---------------------------------------------------------------
 
     def _load_settings(self) -> None:
