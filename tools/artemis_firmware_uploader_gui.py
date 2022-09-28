@@ -311,7 +311,7 @@ class MainWindow(QMainWindow):
 
         # Create our background worker object, which also will do wonk in it's 
         # own thread. 
-        self._worker = AUxWorker(self.on_callback)
+        self._worker = AUxWorker(self.on_worker_callback)
 
         # add the actions/commands for this app to the background processing thread. 
         # These actions are passed jobs to execute. 
@@ -325,7 +325,7 @@ class MainWindow(QMainWindow):
     # so signals and used to relay the call to the GUI running on the
     # main thread
 
-    def on_callback(self, type, arg):
+    def on_worker_callback(self, type, arg):
 
         if type == AUxWorker.TYPE_MESSAGE:
             self.sig_message.emit(arg)
@@ -553,7 +553,7 @@ class MainWindow(QMainWindow):
         # Note - the job is defined with the ID of the target action
         theJob = AxJob(AUxArtemisUploadFirware.ACTION_ID, {"port":self.port, "baud":self.baudRate, "file":fmwFile})
 
-        # add to the work queue - the background thread will process
+        # Send the job to the worker to process
         self._worker.add_job(theJob)
 
         self.disable_interface(True)
@@ -577,6 +577,7 @@ class MainWindow(QMainWindow):
         # process the job. Can set job values using dictionary syntax, or attribut assignments
         theJob = AxJob(AUxArtemisBurnBootloader.ACTION_ID,  {"port":self.port, "baud":self.baudRate, "file":blFile})
 
+        # Send the job to the worker to process
         self._worker.add_job(theJob)
 
         self.disable_interface(True)
