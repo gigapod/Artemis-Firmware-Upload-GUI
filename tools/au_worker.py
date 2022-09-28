@@ -119,7 +119,7 @@ class AUxWorker(object):
 
         # write out the job
         # send a line break across the console - start of a new activity
-        self.message(('_'*70) + "\n")
+        self.message('\n' + ('_'*70) + "\n")
         # Job details
         self.message(self._actions[job.action_id].name + "\n\n")
         for key in sorted(job.keys()):
@@ -136,7 +136,7 @@ class AUxWorker(object):
                     # run the action
                     return self._actions[job.action_id].run_job(job)
                 except SystemExit as  error:
-                    self.message("Error executing command - exit() was called.")
+                    self.message("Note - exit() was called.")
 
         return 1
 

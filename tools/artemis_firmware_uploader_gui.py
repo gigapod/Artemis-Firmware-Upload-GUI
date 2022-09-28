@@ -80,6 +80,8 @@ import os.path
 _APP_VERSION = "v2.1.0"
 _APP_NAME = "Artemis Firmware Uploader"
 
+# sub folder for our resource files
+_RESOURCE_DIRECTORY = "resource"
 #---------------------------------------------------------------------------------------
 # resource_path()
 #
@@ -92,7 +94,7 @@ def resource_path(relative_path):
     """ Get absolute path to resource, works for dev and for PyInstaller """
 
     base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base_path, relative_path)
+    return os.path.join(base_path, _RESOURCE_DIRECTORY, relative_path)
 
 #--------------------------------------------------------------------------------------
 
@@ -605,7 +607,7 @@ if __name__ == '__main__':
     app = QApplication([])
     app.setOrganizationName('SparkFun Electronics')
     app.setApplicationName(_APP_NAME + ' - ' + _APP_VERSION)
-    app.setWindowIcon(QIcon(resource_path("Artemis-Logo-Rounded.png")))
+    app.setWindowIcon(QIcon(resource_path("artemis-logo-rounded.png")))
     app.setApplicationVersion(_APP_VERSION)
     w = MainWindow()
     w.show()
