@@ -42,10 +42,10 @@ jobs:
           
       - uses: actions/upload-artifact@v3
         with:
-          name: sdist
+          name: python-install-package
           path: dist
 
       - id: output-installer
-        run: echo "::set-output name=filename::dist"
+        run: echo "::set-output name=filename::python-install-package"
         
         
