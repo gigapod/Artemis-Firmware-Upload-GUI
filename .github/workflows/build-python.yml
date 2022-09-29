@@ -33,7 +33,7 @@ jobs:
       # Setup python
       - name: System Setup
         run: |
-          pip3 install setuptools codecs
+          pip3 install setuptools 
 
       # Build the installer
       - name: Build Python Installer
