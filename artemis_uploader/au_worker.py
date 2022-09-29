@@ -1,5 +1,60 @@
 
-
+#-----------------------------------------------------------------------------
+# au_worker.py
+#
+#------------------------------------------------------------------------
+#
+# Written/Update by  SparkFun Electronics, Fall 2022
+#
+# This python package implements a GUI Qt application that supports
+# firmware and bootloader uploading to the SparkFun Artemis modle
+#
+# This file is part of the job dispatch system, which runs "jobs"
+# in a background thread for the artemis_uploader package/application.
+#
+# This file implements the main logic of the background worker system.
+#
+# In general, the worker implements a background thread which waits for
+# "jobs" to be passed in for execution via a queue object. Once a job is
+# detected, it is sent to the target "action" object for execution.
+#
+# During job execution, messages are relayed to the main application
+# via a passed in callback function.
+#
+# When a job is executed, it is assumed that "command line" python
+# scripts are used for the underlying logic. As such stdout and stderr are
+# captured for output. Also, "exit()" calls are trapped, so  the thread
+# will continue to execute.
+#
+# More information on qwiic is at https://www.sparkfun.com/artemis
+#
+# Do you like this library? Help support SparkFun. Buy a board!
+#
+#==================================================================================
+# Copyright (c) 2022 SparkFun Electronics
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#==================================================================================
+#
+# pylint: disable=old-style-class, missing-docstring, wrong-import-position
+#
+#-----------------------------------------------------------------------------
 import time
 import queue
 from threading import Thread
@@ -73,6 +128,8 @@ class AUxWorker(object):
         self._shutdown = True
 
     #------------------------------------------------------
+    # Add a execution type/object (an AxAction) to our available
+    # job type list
 
     def add_action(self, *argv) -> None:
 
@@ -101,7 +158,7 @@ class AUxWorker(object):
 
         self._cb_function(self.TYPE_MESSAGE, message)
     #------------------------------------------------------
-    # Job dispatcher. Job is a dict.
+    # Job dispatcher. Job should be an AxJob object instance.
     # 
     # retval  0 = OKAY
 
@@ -120,6 +177,7 @@ class AUxWorker(object):
         # write out the job
         # send a line break across the console - start of a new activity
         self.message('\n' + ('_'*70) + "\n")
+
         # Job details
         self.message(self._actions[job.action_id].name + "\n\n")
         for key in sorted(job.keys()):
@@ -136,12 +194,14 @@ class AUxWorker(object):
                     # run the action
                     return self._actions[job.action_id].run_job(job)
                 except SystemExit as  error:
-                    self.message("Note - exit() was called.")
+                    # some scripts call exit(), even if not an error
+                    self.message("Complete.")
 
         return 1
 
     #------------------------------------------------------
     # The thread processing loop
+
     def process_loop(self, inputQueue):
 
         # Wait on jobs .. forever... Exit when shutdown is true

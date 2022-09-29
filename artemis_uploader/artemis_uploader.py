@@ -1,79 +1,59 @@
-"""
-This is a simple firmware upload GUI designed for the Artemis platform.
-Very handy for updating devices in the field without the need for compiling
-and uploading through Arduino.
+#-----------------------------------------------------------------------------
+# artemis_uploader.py
+#
+#------------------------------------------------------------------------
+#
+# Written/Update by  SparkFun Electronics, Fall 2022
+#
+# This python package implements a GUI Qt application that supports
+# firmware and bootloader uploading to the SparkFun Artemis modle
+#
+# This file is the main application implementation - creating the pyQt
+# interface and event handlers.
+#
+# More information on qwiic is at https://www.sparkfun.com/artemis
+#
+# Do you like this library? Help support SparkFun. Buy a board!
+#
+#==================================================================================
+# Copyright (c) 2022 SparkFun Electronics
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#==================================================================================
+#
+# pylint: disable=missing-docstring, wrong-import-position, no-name-in-module, syntax-error, invalid-name, global-statement
+# pylint: disable=unused-variable, too-few-public-methods, too-many-instance-attributes, too-many-locals, too-many-statements
+#-----------------------------------------------------------------------------
 
-This is the "integrated" version which includes code from both ambiq_bin2board.py and artemis_svl.py
-
-If you are building with a new version of artemis_svl.bin, remember to update BOOTLOADER_VERSION below.
-
-Based on gist by Stefan Lehmann: https://gist.github.com/stlehmann/bea49796ad47b1e7f658ddde9620dff1
-
-MIT license
-
-Pyinstaller:
-Windows:
-pyinstaller --onefile --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin;." --add-data="Artemis-Logo-Rounded.png;." artemis_firmware_uploader_gui.py
-Linux:
-pyinstaller --onefile --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." artemis_firmware_uploader_gui.py
-
-Pyinstaller needs:
-artemis_firmware_uploader_gui.py (this file!)
-artemis_firmware_uploader_gui.ico (icon file for the .exe)
-Artemis-Logo-Rounded.png (icon for the GUI widget)
-artemis_svl.bin (the bootloader binary)
-
-"""
-
-# Immediately upon reset the Artemis module will search for the timing character
-#   to auto-detect the baud rate. If a valid baud rate is found the Artemis will
-#   respond with the bootloader version packet
-# If the computer receives a well-formatted version number packet at the desired
-#   baud rate it will send a command to begin bootloading. The Artemis shall then
-#   respond with the a command asking for the next frame.
-# The host will then send a frame packet. If the CRC is OK the Artemis will write
-#   that to memory and request the next frame. If the CRC fails the Artemis will
-#   discard that data and send a request to re-send the previous frame.
-# This cycle repeats until the Artemis receives a done command in place of the
-#   requested frame data command.
-# The initial baud rate determination must occur within some small timeout. Once
-#   baud rate detection has completed all additional communication will have a
-#   universal timeout value. Once the Artemis has begun requesting data it may no
-#   no longer exit the bootloader. If the host detects a timeout at any point it
-#   will stop bootloading.
-
-# Notes about PySerial timeout:
-# The timeout operates on whole functions - that is to say that a call to
-#   ser.read(10) will return after ser.timeout, just as will ser.read(1) (assuming
-#   that the necessary bytes were not found)
-# If there are no incoming bytes (on the line or in the buffer) then two calls to
-#   ser.read(n) will time out after 2*ser.timeout
-# Incoming UART data is buffered behind the scenes, probably by the OS.
-
-# Information about the firmware updater (taken from ambiq_bin2board.py):
-#   This script performs the three main tasks:
-#       1. Convert 'application.bin' to an OTA update blob
-#       2. Convert the OTA blob into a wired update blob
-#       3. Push the wired update blob into the Artemis module
+import sys
+import os
+import os.path
+import platform
 
 from typing import Iterator, Tuple
-from PyQt5.QtCore import QSettings, QProcess, QTimer, pyqtSignal, pyqtSlot, QObject, Qt
+from PyQt5.QtCore import QSettings, pyqtSignal, pyqtSlot, Qt
 from PyQt5.QtWidgets import QWidget, QLabel, QComboBox, QGridLayout, \
     QPushButton, QApplication, QLineEdit, QFileDialog, QPlainTextEdit, \
-    QAction, QActionGroup, QMenu, QMenuBar, QMainWindow
+    QAction, QActionGroup, QMainWindow, QMessageBox
 from PyQt5.QtGui import QCloseEvent, QTextCursor, QIcon, QFont, QPixmap
 from PyQt5.QtSerialPort import QSerialPortInfo
-import sys
-import time
-import math
-import os
-import serial
-from Crypto.Cipher import AES # pip install pycryptodome
-import array
-import hashlib
-import hmac
-import binascii
-import os.path
+
 
 
 # What version is this app (need something)
@@ -98,17 +78,13 @@ def resource_path(relative_path):
 
 #--------------------------------------------------------------------------------------
 
-# determine the current GUI style (TODO: Is there another way to do this?)
+# determine the current GUI style
 import darkdetect
-import platform
 
 # import action things
-from .au_action import AxAction, AxJob
-
+from .au_action import AxJob
 from .au_act_artasb  import AUxArtemisBurnBootloader
 from .au_act_artfrmw import AUxArtemisUploadFirware
-
-
 from .au_worker import AUxWorker
 
 #----------------------------------------------------------------
@@ -125,13 +101,13 @@ class AUxComboBox(QComboBox):
 #----------------------------------------------------------------
 # ux_is_darkmode()
 #
-# Helpful function used during setup to determine if the Ux is in 
+# Helpful function used during setup to determine if the Ux is in
 # dark mode
 _is_darkmode = None
 def ux_is_darkmode() -> bool:
     global _is_darkmode
 
-    if _is_darkmode != None:
+    if _is_darkmode is not None:
         return _is_darkmode
 
     osName = platform.system()
@@ -147,8 +123,8 @@ def ux_is_darkmode() -> bool:
         # Need to check this on Linux at some pont
         _is_darkmod = False
 
-    else: 
-        _is_darkmode = False 
+    else:
+        _is_darkmode = False
 
     return _is_darkmode
 
@@ -181,15 +157,15 @@ class MainWindow(QMainWindow):
 
         self.installed_bootloader = -1 # Use this to record the bootloader version
 
-        # ///// START of code taken from ambiq_bin2board.py
-
         #
         self.appFile = 'artemis_svl.bin'    # --bin Bootloader binary file
-        
-        self.load_address_blob = 0xC000     # --load-address-wired  dest=loadaddress_blob   default=0x60000
-        self.load_address_image = 0x20000   # --load-address-blob   dest=loadaddress_image  default=AM_SECBOOT_DEFAULT_NONSECURE_MAIN=0xC000
-        self.magic_num = 0xCB       # --magic-num   Magic Num (AM_IMAGE_MAGIC_NONSECURE)
-        
+        # --load-address-wired  dest=loadaddress_blob   default=0x60000
+        self.load_address_blob = 0xC000
+        # --load-address-blob   dest=loadaddress_image
+        #           default=AM_SECBOOT_DEFAULT_NONSECURE_MAIN=0xC000
+        self.load_address_image = 0x20000
+        # --magic-num   Magic Num (AM_IMAGE_MAGIC_NONSECURE)
+        self.magic_num = 0xCB
 
         # File location line edit
         msg_label = QLabel(self.tr('Firmware File:'))
@@ -244,7 +220,7 @@ class MainWindow(QMainWindow):
         # Menu Bar
         menubar = self.menuBar()
         boardMenu = menubar.addMenu('Board Type')
-        
+
         boardGroup = QActionGroup(self)
 
         self.artemis = QAction('Artemis', self, checkable=True)
@@ -252,7 +228,7 @@ class MainWindow(QMainWindow):
         self.artemis.setChecked(True) # Default to artemis
         a = boardGroup.addAction(self.artemis)
         boardMenu.addAction(a)
-        
+
         self.apollo3 = QAction('Apollo3', self, checkable=True)
         self.apollo3.setStatusTip('Apollo3 Blue development boards including the SparkFun Edge')
         a = boardGroup.addAction(self.apollo3)
@@ -266,7 +242,7 @@ class MainWindow(QMainWindow):
 
         # Arrange Layout
         layout = QGridLayout()
-        
+
         layout.addWidget(msg_label, 1, 0)
         layout.addWidget(self.fileLocation_lineedit, 1, 1)
         layout.addWidget(browse_btn, 1, 2)
@@ -289,9 +265,6 @@ class MainWindow(QMainWindow):
         widget.setLayout(layout)
         self.setCentralWidget(widget)
 
-
-        #self._clean_settings() # This will delete all existing settings! Use with caution!
-        
         self._load_settings()
 
         # Make the text edit window read-only
@@ -303,7 +276,6 @@ class MainWindow(QMainWindow):
         # Initial Status Bar
         self.statusBar().showMessage(_APP_NAME + " - " + _APP_VERSION, 10000)
 
-
         # setup our background worker thread ...
 
         # connect the signals from the background processor to callback
@@ -311,12 +283,12 @@ class MainWindow(QMainWindow):
         self.sig_message.connect(self.log_message)
         self.sig_finished.connect(self.on_finished)
 
-        # Create our background worker object, which also will do wonk in it's 
-        # own thread. 
+        # Create our background worker object, which also will do work in it's
+        # own thread.
         self._worker = AUxWorker(self.on_worker_callback)
 
-        # add the actions/commands for this app to the background processing thread. 
-        # These actions are passed jobs to execute. 
+        # add the actions/commands for this app to the background processing thread.
+        # These actions are passed jobs to execute.
         self._worker.add_action(AUxArtemisUploadFirware(), AUxArtemisBurnBootloader())
 
 
@@ -327,11 +299,11 @@ class MainWindow(QMainWindow):
     # so signals and used to relay the call to the GUI running on the
     # main thread
 
-    def on_worker_callback(self, type, arg):
+    def on_worker_callback(self, msg_type, arg):
 
-        if type == AUxWorker.TYPE_MESSAGE:
+        if msg_type == AUxWorker.TYPE_MESSAGE:
             self.sig_message.emit(arg)
-        elif type == AUxWorker.TYPE_FINISHED:
+        elif msg_type == AUxWorker.TYPE_FINISHED:
             self.sig_finished.emit(arg)
 
     #--------------------------------------------------------------
@@ -345,11 +317,11 @@ class MainWindow(QMainWindow):
 
         self.messages.moveCursor(QTextCursor.End)
 
-        ## Backspace ("\b")?? 
+        ## Backspace ("\b")??
         tmp = msg
         while len(tmp) > 2 and tmp.startswith('\b'):
 
-            # remove the "\b" from the input string, and delete the 
+            # remove the "\b" from the input string, and delete the
             # previous character from the cursor in the text console
             tmp = tmp[1:]
             self.messages.textCursor().deletePreviousChar()
@@ -368,17 +340,17 @@ class MainWindow(QMainWindow):
     # on_finished()
     #
     #  Slot for sending the "on finished" signal from the background thread
-    # 
+    #
     #  Called when the backgroudn job is finished and includes a status value
     @pyqtSlot(int)
     def on_finished(self, status) -> None:
 
-        # re-enable the UX 
+        # re-enable the UX
         self.disable_interface(False)
 
         # update the status message
         msg = "successfully" if status == 0 else "with an error"
-        self.statusBar().showMessage("The upload process finished " + msg, 2000)        
+        self.statusBar().showMessage("The upload process finished " + msg, 2000)
 
     #--------------------------------------------------------------
     # on_port_combobox()
@@ -417,7 +389,7 @@ class MainWindow(QMainWindow):
 
         checked = settings.value(SETTING_ARTEMIS)
         if checked is not None:
-            if (checked == 'True'):
+            if checked == 'True':
                 self.artemis.setChecked(True)
                 self.apollo3.setChecked(False)
             else:
@@ -431,7 +403,7 @@ class MainWindow(QMainWindow):
         settings.setValue(SETTING_PORT_NAME, self.port)
         settings.setValue(SETTING_FILE_LOCATION, self.fileLocation_lineedit.text())
         settings.setValue(SETTING_BAUD_RATE, self.baudRate)
-        if (self.artemis.isChecked()): # Convert isChecked to str
+        if self.artemis.isChecked(): # Convert isChecked to str
             checkedStr = 'True'
         else:
             checkedStr = 'False'
@@ -452,25 +424,25 @@ class MainWindow(QMainWindow):
     def update_com_ports(self) -> None:
         """Update COM Port list in GUI."""
         previousPort = self.port # Record the previous port before we clear the combobox
-        
+
         self.port_combobox.clear()
 
         index = 0
         indexOfCH340 = -1
         indexOfPrevious = -1
-        for desc, name, sys in gen_serial_ports():
+        for desc, name, nsys in gen_serial_ports():
 
             longname = desc + " (" + name + ")"
-            self.port_combobox.addItem(longname, sys)
-            if("CH340" in longname):
+            self.port_combobox.addItem(longname, nsys)
+            if"CH340" in longname:
                 # Select the first available CH340
                 # This is likely to only work on Windows. Linux port names are different.
-                if (indexOfCH340 == -1):
+                if indexOfCH340 == -1:
                     indexOfCH340 = index
                     # it could be too early to call
                     #self.log_message("CH340 found at index " + str(indexOfCH340))
                     # as the GUI might not exist yet
-            if(sys == previousPort): # Previous port still exists so record it
+            if nsys == previousPort : # Previous port still exists so record it
                 indexOfPrevious = index
             index = index + 1
 
@@ -485,8 +457,8 @@ class MainWindow(QMainWindow):
     def verify_port(self, port) -> bool:
 
         # Valid inputs - Check the port
-        for desc, name, sys in gen_serial_ports():
-            if sys == port:
+        for desc, name, nsys in gen_serial_ports():
+            if nsys == port:
                 return True
 
         return False
@@ -537,7 +509,7 @@ class MainWindow(QMainWindow):
     #
 
     def on_upload_btn_pressed(self) -> None:
-        
+
         # Valid inputs - Check the port
         if not self.verify_port(self.port):
             self.log_message("Port No Longer Available")
@@ -548,12 +520,13 @@ class MainWindow(QMainWindow):
         if not os.path.exists(fmwFile):
             self.log_message("The firmware file was not found: " + fmwFile)
             return
-        
+
         # Create a job and add it to the job queue. The worker thread will pick this up and
         # process the job. Can set job values using dictionary syntax, or attribut assignments
-        # 
+        #
         # Note - the job is defined with the ID of the target action
-        theJob = AxJob(AUxArtemisUploadFirware.ACTION_ID, {"port":self.port, "baud":self.baudRate, "file":fmwFile})
+        theJob = AxJob(AUxArtemisUploadFirware.ACTION_ID, \
+                    {"port":self.port, "baud":self.baudRate, "file":fmwFile})
 
         # Send the job to the worker to process
         self._worker.add_job(theJob)
@@ -577,7 +550,8 @@ class MainWindow(QMainWindow):
 
         # Make up a job and add it to the job queue. The worker thread will pick this up and
         # process the job. Can set job values using dictionary syntax, or attribut assignments
-        theJob = AxJob(AUxArtemisBurnBootloader.ACTION_ID,  {"port":self.port, "baud":self.baudRate, "file":blFile})
+        theJob = AxJob(AUxArtemisBurnBootloader.ACTION_ID, \
+                {"port":self.port, "baud":self.baudRate, "file":blFile})
 
         # Send the job to the worker to process
         self._worker.add_job(theJob)
@@ -599,9 +573,16 @@ class MainWindow(QMainWindow):
         if fileName:
             self.fileLocation_lineedit.setText(fileName)
 
+#------------------------------------------------------------------
+# startArtemisUploader()
+#
+# This is the main entry point function to start the application GUI
+#
+# This is called from the command line script that launches the application
+#
 
 def startArtemisUploader():
-    import sys
+
     app = QApplication([])
     app.setOrganizationName('SparkFun Electronics')
     app.setApplicationName(_APP_NAME + ' - ' + _APP_VERSION)
@@ -611,5 +592,8 @@ def startArtemisUploader():
     w.show()
     sys.exit(app.exec_())
 
+#------------------------------------------------------------------
+# This is probably not needed/working now that this is file is part of a package,
+# but leaving here anyway ...
 if __name__ == '__main__':
     startArtemisUploader()
