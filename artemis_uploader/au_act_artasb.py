@@ -1,8 +1,8 @@
 
 
 
-from au_action import AxAction, AxJob
-import asb
+from .au_action import AxAction, AxJob
+from .asb import main as asb_main
 import tempfile
 import sys
 #--------------------------------------------------------------------------------------
@@ -32,4 +32,4 @@ class AUxArtemisBurnBootloader(AxAction):
                     "-clean", "1" ]
 
         # Call the ambiq command
-        asb.main()
+        asb_main()

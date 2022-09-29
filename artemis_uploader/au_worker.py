@@ -3,7 +3,7 @@
 import time
 import queue
 from threading import Thread
-from au_action import AxAction, AxJob
+from .au_action import AxAction, AxJob
 from contextlib import redirect_stdout, redirect_stderr
 
 #--------------------------------------------------------------------------------------

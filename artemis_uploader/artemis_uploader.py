@@ -77,7 +77,7 @@ import os.path
 
 
 # What version is this app (need something)
-_APP_VERSION = "v2.1.0"
+_APP_VERSION = "v3.0.0"
 _APP_NAME = "Artemis Firmware Uploader"
 
 # sub folder for our resource files
@@ -103,13 +103,13 @@ import darkdetect
 import platform
 
 # import action things
-from au_action import AxAction, AxJob
+from .au_action import AxAction, AxJob
 
-from au_act_artasb  import AUxArtemisBurnBootloader
-from au_act_artfrmw import AUxArtemisUploadFirware
+from .au_act_artasb  import AUxArtemisBurnBootloader
+from .au_act_artfrmw import AUxArtemisUploadFirware
 
 
-from au_worker import AUxWorker
+from .au_worker import AUxWorker
 
 #----------------------------------------------------------------
 # hack to know when a combobox menu is being shown. Helpful if contents
@@ -600,9 +600,7 @@ class MainWindow(QMainWindow):
             self.fileLocation_lineedit.setText(fileName)
 
 
-   
-
-if __name__ == '__main__':
+def startArtemisUploader():
     import sys
     app = QApplication([])
     app.setOrganizationName('SparkFun Electronics')
@@ -612,3 +610,6 @@ if __name__ == '__main__':
     w = MainWindow()
     w.show()
     sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    startArtemisUploader()

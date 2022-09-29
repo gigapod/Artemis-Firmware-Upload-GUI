@@ -1,7 +1,6 @@
 
-from au_action import AxAction, AxJob
-
-import artemis_svl
+from .au_action import AxAction, AxJob
+from .artemis_svl import upload_firmware
 
 #--------------------------------------------------------------------------------------
 # action testing
@@ -16,7 +15,7 @@ class AUxArtemisUploadFirware(AxAction):
     def run_job(self, job:AxJob):
 
         try:
-            artemis_svl.upload_firmware(job.file, job.port, job.baud)
+            upload_firmware(job.file, job.port, job.baud)
 
         except Exception:
             return 1
