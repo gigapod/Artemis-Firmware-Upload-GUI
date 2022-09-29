@@ -27,3 +27,6 @@ jobs:
     
   call-windows-build:
     uses: ./.github/workflows/build-windows.yml
+
+  call-python-build:
+    uses: ./.github/workflows/build-python.yml
