@@ -38,7 +38,7 @@ jobs:
       # Build the installer
       - name: Build Linux Installer
         run: |
-          pyinstaller --onefile --name ArtemisUploader --noconsole --distpath=. --icon=artemis_uploader/resource/artemis-uploader.ico  --add-data="artemis_uploader/resource/*:resource/"  artemis_upload
+          pyinstaller --onefile --name ArtemisUploader --noconsole --distpath=. --icon=artemis_uploader/resource/artemis-uploader.ico  --add-data="artemis_uploader/resource/*:resource/"  artemis_upload.py
           gzip ArtemisUploader
           mv ArtemisUploader.gz ArtemisUploader.linux.gz
           
