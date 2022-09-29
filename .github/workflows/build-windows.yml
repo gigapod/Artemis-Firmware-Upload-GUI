@@ -38,13 +38,11 @@ jobs:
       # Build the installer
       - name: Build Windows Installer
         run: |
-          cd artemis_uploader
           pyinstaller --onefile --name ArtemisUploader --noconsole --distpath=. --icon=artemis_uploader\resource\artemis-uploader.ico   --add-data="artemis_uploader\resource\*;resource\" artemis_upload
                     
       - name: Compress Installer
         shell: powershell
         run: |
-          cd artemis_uploader
           $compress = @{
             Path = ".\ArtemisUploader.exe"
             CompressionLevel = "Fastest"
