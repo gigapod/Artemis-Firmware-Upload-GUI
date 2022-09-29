@@ -55,7 +55,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: ArtemisUploader.win.zip
-          path: tools/ArtemisUploader.win.zip
+          path: artemis_uploader/ArtemisUploader.win.zip
           
       - id: output-installer
         run: echo "::set-output name=filename::ArtemisUploader.win.zip"

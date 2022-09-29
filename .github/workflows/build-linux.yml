@@ -46,7 +46,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: ArtemisUploader.linux.gz
-          path: tools/ArtemisUploader.linux.gz
+          path: artemis_uploader/ArtemisUploader.linux.gz
 
       - id: output-installer
         run: echo "::set-output name=filename::ArtemisUploader.linux.gz"
