@@ -39,8 +39,7 @@ jobs:
       # Build the installer
       - name: Build Mac Installer
         run: |
-          cd artemis_uploader
-          pyinstaller --windowed -n ArtemisUploader --noconsole --distpath=. --icon=resource/artemis-uploader.ico   --add-data="resource/*:resource/" artemis_uploader.py
+          pyinstaller --windowed -n ArtemisUploader --noconsole --distpath=. --icon=artemis_uploader/resource/artemis-uploader.ico   --add-data="artemis_uploader/resource/*:resource/" artemis_upload
           mkdir tmp
           mv "ArtemisUploader.app" "tmp/"
           create-dmg --volicon "resource/sparkdisk.icns" --background "resource/sfe_logo_med.png" --hide-extension "ArtemisUploader.app" --icon "ArtemisUploader.app" 100 100 --window-size 600 440 --app-drop-link 400 100 "ArtemisUploader.dmg" "tmp/"
@@ -48,7 +47,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           name: ArtemisUploader.dmg
-          path: artemis_uploader/ArtemisUploader.dmg
+          path: ArtemisUploader.dmg
 
       - id: output-installer
         run: echo "::set-output name=filename::ArtemisUploader.dmg"

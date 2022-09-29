@@ -39,14 +39,14 @@ jobs:
       - name: Build Linux Installer
         run: |
           cd artemis_uploader
-          pyinstaller --onefile --name ArtemisUploader --noconsole --distpath=. --icon=resource/artemis-uploader.ico  --add-data="resource/*:resource/"  artemis_uploader.py
+          pyinstaller --onefile --name ArtemisUploader --noconsole --distpath=. --icon=artemis_uploader/resource/artemis-uploader.ico  --add-data="artemis_uploader/resource/*:resource/"  artemis_upload
           gzip ArtemisUploader
           mv ArtemisUploader.gz ArtemisUploader.linux.gz
           
       - uses: actions/upload-artifact@v3
         with:
           name: ArtemisUploader.linux.gz
-          path: artemis_uploader/ArtemisUploader.linux.gz
+          path: ArtemisUploader.linux.gz
 
       - id: output-installer
         run: echo "::set-output name=filename::ArtemisUploader.linux.gz"
