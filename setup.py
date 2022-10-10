@@ -7,7 +7,7 @@
 # Written/Update by  SparkFun Electronics, Fall 2022
 #
 # This python package implements a GUI Qt application that supports
-# firmware and bootloader uploading to the SparkFun Artemis modle
+# firmware and boot loader uploading to the SparkFun Artemis module
 #
 # This file defines the python install package to be build for the
 # 'artemis_upload' package

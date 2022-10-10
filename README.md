@@ -8,7 +8,7 @@ The Artemis Firmware Uploader (AFU) is a simple to use GUI for updating firmware
 ## Installation
 To use the compiled binaries for the supported platforms, use the binaries that are part of the latest release. 
 
-### Windows 
+### Windows
 * Download the release zip file - ArtemisUploader.win.zip
 * Unzip the application file - ArtemisUploader.exe
 * Double click ArtemisUploader.exe to start the application
@@ -66,34 +66,3 @@ Repository Contents
 * **/Raspberry_Pi__Debian** contains an executable for Raspberry Pi 4 (Debian Buster)
 * **LICENSE.md** contains the licence information
 
-Building Your Own Executable
-----------------------------
-
-We use Python3 and [pyinstaller](http://www.pyinstaller.org/) to create the executables. You can create your own executable if you want to, so long as you have PyQt5 and the other prerequisites installed.
-
-The **/tools** folder contains the python source code, icons and the latest SVL bootloader binary. You can run the python code directly by calling:
-
-```python3 artemis_firmware_uploader_gui.py```
-
-On Windows platforms, you can create an executable by calling:
-
-```pyinstaller --onefile --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin;." --add-data="Artemis-Logo-Rounded.png;." artemis_firmware_uploader_gui.py```
-
-On Linux platforms, you need to replace the semicolons with colons:
-
-```pyinstaller --onefile --noconsole --distpath=. --icon=artemis_firmware_uploader_gui.ico --add-data="artemis_svl.bin:." --add-data="Artemis-Logo-Rounded.png:." artemis_firmware_uploader_gui.py```
-
-This will create a single file executable which has the SVL binary bundled into it. You can then distribute it and run it on the same platform without needing Python3.
-
-License Information
--------------------
-
-This product is _**open source**_!
-
-If you have any questions or concerns on licensing, please contact techsupport@sparkfun.com.
-
-Please use, reuse, and modify these files as you see fit. Please maintain attribution to SparkFun Electronics and release any derivative under the same license.
-
-Distributed as-is; no warranty is given.
-
-- Your friends at SparkFun.

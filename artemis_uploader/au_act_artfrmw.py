@@ -6,7 +6,7 @@
 # Written/Update by  SparkFun Electronics, Fall 2022
 #
 # This python package implements a GUI Qt application that supports
-# firmware and bootloader uploading to the SparkFun Artemis modle
+# firmware and bootloader uploading to the SparkFun Artemis module
 #
 # This file is part of the job dispatch system, which runs "jobs"
 # in a background thread for the artemis_uploader package/application.
@@ -48,7 +48,7 @@ from .artemis_svl import upload_firmware
 
 #--------------------------------------------------------------------------------------
 # action testing
-class AUxArtemisUploadFirware(AxAction):
+class AUxArtemisUploadFirmware(AxAction):
 
     ACTION_ID = "artemis-upload-firmware"
     NAME = "Artemis Firmware Upload"

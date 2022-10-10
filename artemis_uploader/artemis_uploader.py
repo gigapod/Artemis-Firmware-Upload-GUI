@@ -6,7 +6,7 @@
 # Written/Update by  SparkFun Electronics, Fall 2022
 #
 # This python package implements a GUI Qt application that supports
-# firmware and bootloader uploading to the SparkFun Artemis modle
+# firmware and bootloader uploading to the SparkFun Artemis module
 #
 # This file is the main application implementation - creating the pyQt
 # interface and event handlers.
@@ -81,10 +81,10 @@ def resource_path(relative_path):
 # determine the current GUI style
 import darkdetect
 
-# import action things
+# import action things - the .syntax is used since these are part of the package
 from .au_action import AxJob
 from .au_act_artasb  import AUxArtemisBurnBootloader
-from .au_act_artfrmw import AUxArtemisUploadFirware
+from .au_act_artfrmw import AUxArtemisUploadFirmware
 from .au_worker import AUxWorker
 
 #----------------------------------------------------------------
@@ -289,7 +289,7 @@ class MainWindow(QMainWindow):
 
         # add the actions/commands for this app to the background processing thread.
         # These actions are passed jobs to execute.
-        self._worker.add_action(AUxArtemisUploadFirware(), AUxArtemisBurnBootloader())
+        self._worker.add_action(AUxArtemisUploadFirmware(), AUxArtemisBurnBootloader())
 
 
     #--------------------------------------------------------------
@@ -525,7 +525,7 @@ class MainWindow(QMainWindow):
         # process the job. Can set job values using dictionary syntax, or attribut assignments
         #
         # Note - the job is defined with the ID of the target action
-        theJob = AxJob(AUxArtemisUploadFirware.ACTION_ID, \
+        theJob = AxJob(AUxArtemisUploadFirmware.ACTION_ID, \
                     {"port":self.port, "baud":self.baudRate, "file":fmwFile})
 
         # Send the job to the worker to process
