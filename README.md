@@ -73,7 +73,7 @@ To launch the Artemis Uploader application:
 * To run the application, the file must have *execute* permission. This is performed by selecting *Properties* from the file right-click menu, and then selecting permissions. You can also change permissions using the `chmod` command in a terminal window.
 * Once the application has execute permission, you can start the application a terminal window. Change directory's to the application location and issue `./ArtemisUploader`
 
-![Linux Artemis Uploader](images/artemis-Linux.png)
+![Linux Artemis Uploader](images/artemis-linux.png)
 
 
 ### Python Package
