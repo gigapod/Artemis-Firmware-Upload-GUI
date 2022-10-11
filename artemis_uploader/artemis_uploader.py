@@ -505,7 +505,7 @@ class MainWindow(QMainWindow):
         self.updateBootloader_btn.setDisabled(bDisable)
 
     #--------------------------------------------------------------
-    # on_uplaod_btn_pressed()
+    # on_upload_btn_pressed()
     #
 
     def on_upload_btn_pressed(self) -> None:
@@ -522,7 +522,7 @@ class MainWindow(QMainWindow):
             return
 
         # Create a job and add it to the job queue. The worker thread will pick this up and
-        # process the job. Can set job values using dictionary syntax, or attribut assignments
+        # process the job. Can set job values using dictionary syntax, or attribute assignments
         #
         # Note - the job is defined with the ID of the target action
         theJob = AxJob(AUxArtemisUploadFirmware.ACTION_ID, \
@@ -549,7 +549,7 @@ class MainWindow(QMainWindow):
             return
 
         # Make up a job and add it to the job queue. The worker thread will pick this up and
-        # process the job. Can set job values using dictionary syntax, or attribut assignments
+        # process the job. Can set job values using dictionary syntax, or attribute assignments
         theJob = AxJob(AUxArtemisBurnBootloader.ACTION_ID, \
                 {"port":self.port, "baud":self.baudRate, "file":blFile})
 

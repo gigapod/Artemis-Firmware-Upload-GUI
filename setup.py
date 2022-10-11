@@ -67,7 +67,7 @@ setuptools.setup(
 
     project_urls = {
         "Bug Tracker" : "https://github.com/sparkfun/Artemis-Firmware-Upload-GUI/issues",
-        "Repositor"   : "https://github.com/sparkfun/Artemis-Firmware-Upload-GUI"
+        "Repository"   : "https://github.com/sparkfun/Artemis-Firmware-Upload-GUI"
     },
     # Choose your license
     license='MIT',

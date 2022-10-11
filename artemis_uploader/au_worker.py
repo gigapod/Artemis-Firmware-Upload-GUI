@@ -72,19 +72,19 @@ from io import TextIOWrapper, BytesIO
 
 
 class AUxIOWedge(TextIOWrapper):
-    def __init__(self, output_funct, supress=False, newline="\n"):
+    def __init__(self, output_funct, suppress=False, newline="\n"):
         super(AUxIOWedge, self).__init__(BytesIO(),
                                         encoding="utf-8",
                                         errors="surrogatepass",
                                         newline=newline)
 
         self._output_func = output_funct
-        self._supress = supress
+        self._suppress = suppress
 
     def write(self, buffer):
 
         # Just send buffer to our output console
-        if not self._supress:
+        if not self._suppress:
             self._output_func(buffer)
 
         return len(buffer)
@@ -118,7 +118,7 @@ class AUxWorker(object):
         self._thread = Thread(target = self.process_loop, args=(self._queue,))
         self._thread.start()
 
-    # Maek sure the thread stops running in Destructor. And add shutdown user method
+    # Make sure the thread stops running in Destructor. And add shutdown user method
     def __del__(self):
 
         self._shutdown = True
@@ -145,7 +145,7 @@ class AUxWorker(object):
     #
     def add_job(self, theJob:AxJob)->None:
 
-        # just enque the job
+        # just enqueue the job
 
         self._queue.put(theJob)
 
@@ -169,7 +169,7 @@ class AUxWorker(object):
             self.message("ERROR - invalid job dispatched\n")
             return 1
 
-        # is the target action in our avaialble actions dictionary?
+        # is the target action in our available actions dictionary?
         if job.action_id not in self._actions:
             self.message("Unknown job type. Aborting\n")
             return 1
@@ -187,7 +187,7 @@ class AUxWorker(object):
 
         # capture stdio and stderr outputs
         with redirect_stdout(AUxIOWedge(self.message)):
-            with redirect_stderr(AUxIOWedge(self.message, supress=True)):
+            with redirect_stderr(AUxIOWedge(self.message, suppress=True)):
 
                 # catch any exit() calls the underlying system might make
                 try:
