@@ -5,6 +5,30 @@ SparkFun Artemis Uploader App
 
 The Artemis Uploader App is a simple, easy to use method for updating the firmware and bootloader on SparkFun Artemis based products. Available on all major platforms, as well as a Python package, the Artemis Uploader App simplifies working with SparkFun Artemis. 
 
+If you need to install the application, see the [Installation Section](#installation) of this page.
+
+
+# Using the Artemis Uploader
+  
+## Upload Firmware
+  
+* Click ```Browse``` and select the firmware file you'd like to upload (should end in *.bin*)
+* Attach the Artemis target board over USB
+* Select the COM port from the dropdown menu
+* Adjust the Baud Rate as desired
+* Click the  ```Upload Firmware``` Button in the lower left of the app.
+
+The selected firmware is then uploaded to the connected SparkFun Artemis product. Upload information and progress are displayed in the output portion of the interface. 
+
+![Firmware Upload](images/firmware-upload.png)
+
+## Update Bootloader
+
+Clicking the ```Update Bootloader``` button on the lower left of the application will erase all firmware on the Artemis and load the latest bootloader firmware. This is helpful when SparkFun releases updates to the [SVL](https://github.com/sparkfun/SparkFun_Apollo3_AmbiqSuite_BSPs/blob/master/common/examples/artemis_svl/src/main.c).
+
+![Bootloader Upload](images/bootloader-upload.png)
+
+
 ## Installation
 Installation binaries are available for all major platforms (macOS, Window, and Linux) on the release page of the Artemis Uploader App github repository. 
 
@@ -71,28 +95,6 @@ Notes:
 
 The uploader is uninstalled by issuing this pip command: 
 * `pip uninstall artemis-uploader`
-
-# Using the Artemis Uploader
-  
-## Upload Firmware
-  
-* Click ```Browse``` and select the firmware file you'd like to upload (should end in *.bin*)
-* Attach the Artemis target board over USB
-* Select the COM port from the dropdown menu
-* Adjust the Baud Rate as desired
-* Click the  ```Upload Firmware``` Button in the lower left of the app.
-
-The selected firmware is then uploaded to the connected SparkFun Artemis product. Upload information and progress are displayed in the output portion of the interface. 
-
-![Firmware Upload](images/firmware-upload.png)
-
-## Update Bootloader
-
-Clicking the ```Update Bootloader``` button on the lower left of the application will erase all firmware on the Artemis and load the latest bootloader firmware. This is helpful when SparkFun releases updates to the [SVL](https://github.com/sparkfun/SparkFun_Apollo3_AmbiqSuite_BSPs/blob/master/common/examples/artemis_svl/src/main.c).
-
-![Bootloader Upload](images/bootloader-upload.png)
-
-
 ### Example Firmware
 I the applications github repo, n example *Blink.bin* firmware file is included in the repo. This firmware will cause these LEDs to blink at 1Hz:
 * the D5 LED on the [SparkFun RedBoard Artemis ATP](https://www.sparkfun.com/products/15442)
