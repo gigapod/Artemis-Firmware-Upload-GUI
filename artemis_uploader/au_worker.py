@@ -145,9 +145,13 @@ class AUxWorker(object):
     #
     def add_job(self, theJob:AxJob)->None:
 
-        # just enqueue the job
+
+        # get job ID
+        job_id = theJob.job_id
 
         self._queue.put(theJob)
+
+        return job_id
 
     #------------------------------------------------------    
     # call back function for output from the bootloader - called from our IO wedge class.
@@ -218,6 +222,6 @@ class AUxWorker(object):
 
                 status = self.dispatch_job(job)
 
-                # job is finished - let UX know
-                self._cb_function(self.TYPE_FINISHED, status)
+                # job is finished - let UX know -pass status, action type and job id
+                self._cb_function(self.TYPE_FINISHED, status, job.action_id, job.job_id)
 
