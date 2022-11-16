@@ -78,12 +78,18 @@
 
 class AxJob(dict):
 
+	# class variable for job ids
+	_next_job_id =1
+
 	def __init__(self, action_id:str, indict=None):
 
 		if indict is None:
 			indict = {}
 
 		self.action_id = action_id
+
+		self.job_id = AxJob._next_job_id;
+		AxJob._next_job_id = AxJob._next_job_id+1;
 
 		# super
 		dict.__init__(self, indict)
